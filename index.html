@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编程比赛模拟系统 - 重生版（含训练阶段）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Consolas", "Microsoft YaHei", monospace;
+            border-radius: 12px !important; /* 全局基础圆角强化 */
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* 页面通用样式 */
+        .page {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeIn 0.5s ease;
+            padding: 15px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 训练阶段布局 - 左2/3 右1/3 */
+        .training-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            flex: 1;
+        }
+
+        .training-left {
+            flex: 2; /* 占2/3 */
+            min-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #333;
+        }
+
+        .training-right {
+            flex: 1; /* 占1/3 */
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            background: #111;
+            border: 1px solid #333;
+        }
+
+        /* 选手信息卡片样式 */
+        .contestant-card {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .contestant-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff00;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .captain-tag {
+            color: #00ffff;
+            font-size: 16px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .abilities-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ability-item {
+            background: #222;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 8px !important;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ability-name {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .ability-value {
+            font-size: 14px;
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .stress-status {
+            padding: 6px 12px;
+            border-radius: 8px !important;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .stress-none { background: #888; color: #fff; }
+        .stress-low { background: #00aa00; color: #fff; }
+        .stress-medium { background: #ffff00; color: #000; }
+        .stress-high-medium { background: #ffaa00; color: #fff; }
+        .stress-high { background: #ff6633; color: #fff; }
+        .stress-quit { background: #ff0000; color: #fff; }
+
+        /* 操作按钮样式 */
+        .action-card {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 12px !important;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,255,255,0.2);
+            border-color: #00ffff;
+        }
+
+        .action-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff00;
+            margin-bottom: 8px;
+        }
+
+        .action-desc {
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.4;
+        }
+
+        .weeks-left {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffff00;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #222;
+            border-radius: 8px !important;
+        }
+
+        /* 刷题弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid #444;
+            padding: 30px;
+            border-radius: 12px !important;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .problem-grid {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .problem-card {
+            flex: 1;
+            min-width: 200px;
+            background: #1a1a1a;
+            border: 2px solid;
+            padding: 20px;
+            border-radius: 12px !important;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .problem-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .problem-difficulty {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .problem-ability {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .problem-stress {
+            font-size: 12px;
+            color: #ff6666;
+            margin-top: 10px;
+        }
+
+        /* 难度颜色 */
+        .diff-beginner { border-color: #ff4444; color: #ff4444; }
+        .diff-popular-minus { border-color: #ffa500; color: #ffa500; }
+        .diff-popular { border-color: #ffff00; color: #ffff00; }
+        .diff-improve-plus { border-color: #00ffff; color: #00ffff; }
+        .diff-provincial { border-color: #9932cc; color: #9932cc; }
+        .diff-noi { border-color: #333333; color: #333333; background: #f0f0f0; }
+
+        .diff-noi .problem-ability, .diff-noi .problem-stress {
+            color: #333;
+        }
+
+        /* 原有样式保留并适配 */
+        .layout-row {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            flex: 1;
+        }
+        .layout-left {
+            flex: 2; /* 修改为2/3宽度显示排行榜 */
+            min-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .layout-right {
+            flex: 1; /* 修改为1/3宽度显示日志 */
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .cover {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .cover-text {
+            font-size: 18px;
+            margin-bottom: 30px;
+            white-space: pre-line;
+            padding: 20px;
+            background: #111;
+            border: 1px solid #444;
+        }
+
+        .text-red { color: #ff4444; }
+        .text-green { color: #00ff00; }
+        .text-yellow { color: #ffff00; }
+        .text-cyan { color: #00ffff; }
+        .text-gray { color: #aaaaaa; }
+
+        .btn {
+            padding: 12px 30px;
+            background-color: #222;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            border-radius: 12px !important;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin: 5px;
+            box-shadow: 0 2px 8px rgba(0,255,0,0.1);
+        }
+
+        .btn:hover {
+            background-color: #00ff00;
+            color: #000;
+            box-shadow: 0 4px 12px rgba(0,255,0,0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #333;
+        }
+
+        .log-area {
+            background-color: #111;
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 12px !important;
+            height: 500px;
+            overflow-y: auto;
+            font-size: 14px;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .log-area::-webkit-scrollbar {
+            width: 10px;
+            border-radius: 5px !important;
+        }
+
+        .log-area::-webkit-scrollbar-track {
+            background: #222;
+            border-radius: 5px !important;
+        }
+
+        .log-area::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px !important;
+        }
+
+        .ranking-container {
+            background: #111;
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 12px !important;
+            flex: 1;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+
+        .ranking-table th, .ranking-table td {
+            padding: 12px 15px;
+            border: 1px solid #333;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .ranking-table th {
+            background-color: #222;
+            color: #00ffff;
+            position: relative;
+        }
+
+        .ranking-table tr {
+            position: relative;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
+        .score-red { background-color: #8b0000; color: #fff; }
+        .score-orange { background-color: #ff8c00; color: #000; }
+        .score-yellow { background-color: #ffff00; color: #000; }
+        .score-cyan { background-color: #00ced1; color: #000; }
+        .score-green { background-color: #006400; color: #fff; }
+
+        .medal-gold { background-color: #ffd700; color: #000; font-weight: bold; padding: 4px 12px; border-radius: 8px !important; }
+        .medal-silver { background-color: #c0c0c0; color: #000; font-weight: bold; padding: 4px 12px; border-radius: 8px !important; }
+        .medal-bronze { background-color: #cd7f32; color: #000; font-weight: bold; padding: 4px 12px; border-radius: 8px !important; }
+
+        .config-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 25px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px !important;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: #00ffff;
+        }
+
+        .form-group input {
+            padding: 10px 15px;
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px !important;
+            transition: border 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 8px rgba(0,255,255,0.2);
+        }
+
+        .talent-temp-power { color: #ffff00; }
+        .talent-calm { color: #00ffff; }
+        .talent-ds-lover { color: #00ff00; }
+        .talent-math-genius { color: #0000ff; }
+        .talent-dp-master { color: #800080; }
+        .talent-str-expert { color: #ffa500; }
+        .talent-graph-pro { color: #ff69b4; }
+        .talent-code-fast { color: #90ee90; }
+        .talent-think-burst { color: #add8e6; }
+        .talent-mental-strong { color: #87ceeb; }
+        .talent-inspiration { color: #ff0000; }
+        .talent-breakthrough { color: #ffffff; }
+        .talent-error-correction { color: #ff8c00; }
+        .talent-speed-boost { color: #00bfff; }
+        .talent-stress-resistance { color: #191970; }
+        .talent-negative { color: #aaaaaa; }
+
+        h1, h2, h3 {
+            color: #00ff00;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: linear-gradient(90deg, #111, #222, #111);
+            border-radius: 8px !important;
+        }
+
+        h2 {
+            color: #00ffff;
+        }
+
+        h3 {
+            color: #ffff00;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #444;
+            margin: 20px 0;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(3deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-3deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .score-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes rankSlide {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .rank-slide {
+            animation: rankSlide 0.5s ease-out;
+        }
+
+        #final-ranking {
+            padding: 20px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px !important;
+        }
+        #champion-speech {
+            padding: 20px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 封面页 -->
+        <div class="page cover active" id="cover-page">
+            <div class="cover-text">
+                <p class="text-cyan">  曾因卡题的焦灼错失良机，曾因粗心的遗憾与奖牌失之交臂——</p>
+                <p class="text-cyan">  但竞赛的魅力从不是一帆风顺，而是跌倒后重新站起的勇气。</p>
+                <p class="text-cyan">  这一次，10周训练 + 5天赛程是你的<span class="text-red">重生</span>契机：用键盘敲击梦想，用算法破解迷茫，</p>
+                <p class="text-cyan">  让天赋觉醒成为底气，让并肩前行化作力量。</p>
+                <p class="text-cyan">  每一场<span class="text-green">训练</span>都是积淀，每一次<span class="text-yellow">比赛</span>都是博弈，每一份得分都是成长的勋章，</p>
+                <p class="text-cyan">  不问过往输赢，只赴巅峰之约——这一次，终将不负热爱！</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="startGame()">开启重生之旅</button>
+            </div>
+        </div>
+
+        <!-- 选手配置页 -->
+        <div class="page" id="config-page">
+            <h1>比赛信息配置</h1>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="contestant-count">参赛选手人数（最多10人）</label>
+                    <input type="number" id="contestant-count" min="1" max="10" value="2">
+                </div>
+                <div class="form-group">
+                    <label for="daily-prob-count">每日题目数量</label>
+                    <input type="number" id="daily-prob-count" min="1" max="10" value="2">
+                </div>
+                <div id="contestant-names"></div>
+                <div class="btn-group">
+                    <button class="btn" onclick="generateContestants()">生成选手信息</button>
+                </div>
+            </div>
+            <div class="log-area" id="contestant-info-log"></div>
+            <div class="btn-group">
+                <button class="btn" onclick="gotoTraining()">进入10周训练阶段</button>
+            </div>
+        </div>
+
+        <!-- 训练阶段页 -->
+        <div class="page" id="training-page">
+            <h1>赛前训练阶段</h1>
+            <div class="training-layout">
+                <!-- 左侧选手信息（2/3宽度） -->
+                <div class="training-left" id="contestant-list">
+                    <!-- 选手卡片动态生成 -->
+                </div>
+                <!-- 右侧操作区（1/3宽度） -->
+                <div class="training-right">
+                    <div class="weeks-left" id="weeks-left">距离比赛还有：10周</div>
+                    
+                    <!-- 刷题操作 -->
+                    <div class="action-card" onclick="openProblemModal()">
+                        <div class="action-name">刷题</div>
+                        <div class="action-desc">选择不同难度题目训练，提升指定能力值（1-30点），难度越高提升越多、能力种类越多，但压力增长越快，可能获得负面技能</div>
+                    </div>
+                    
+                    <!-- 放松操作 -->
+                    <div class="action-card" onclick="doRelax()">
+                        <div class="action-name">放松</div>
+                        <div class="action-desc">减缓当前压力等级，无能力提升，降低比赛时心态崩溃和挂分概率</div>
+                    </div>
+                    
+                    <!-- 模拟赛操作 -->
+                    <div class="action-card" onclick="startMockContest()">
+                        <div class="action-name">模拟赛</div>
+                        <div class="action-desc">检验学习成果，模拟正式比赛单日流程，所有能力小幅提升（1-5点），压力小幅增减（随机）</div>
+                    </div>
+                    
+                    <!-- 查看PPT操作 -->
+                    <div class="action-card" onclick="doViewPPT()">
+                        <div class="action-name">查看老师的PPT</div>
+                        <div class="action-desc">随机提升单项能力（1-20点），压力小幅增加</div>
+                    </div>
+                    
+                    <!-- 退队操作 -->
+                    <div class="action-card" style="border-color: #ff4444;" onclick="doQuitTeam()">
+                        <div class="action-name" style="color: #ff4444;">退队</div>
+                        <div class="action-desc" style="color: #ffaaaa;">直接退出队伍，结束游戏</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模拟赛页面（和正赛单日相同布局） -->
+        <div class="page" id="mock-contest-page">
+            <h1>训练模拟赛（300分钟/30轮，每轮10分钟）</h1>
+            <div class="btn-group">
+                <button class="btn" onclick="nextMockRound()">进行下一轮</button>
+                <button class="btn" onclick="processMockDeduction()" style="display: none;" id="mock-deduction-btn">处理模拟赛挂分</button>
+                <button class="btn" onclick="showMockRanking()" style="display: none;" id="mock-ranking-btn">查看模拟赛排行榜</button>
+                <button class="btn" onclick="finishMockContest()" style="display: none;" id="mock-finish-btn">结束模拟赛返回训练</button>
+            </div>
+            <div class="layout-row">
+                <div class="layout-left">
+                    <div class="ranking-container" id="mock-ranking"></div>
+                </div>
+                <div class="layout-right">
+                    <div class="log-area" id="mock-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 刷题选择弹窗 -->
+        <div class="modal" id="problem-modal">
+            <div class="modal-content">
+                <div class="modal-title">选择刷题难度</div>
+                <div class="problem-grid" id="problem-grid">
+                    <!-- 题目卡片动态生成 -->
+                </div>
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button class="btn" onclick="closeProblemModal()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 笔试阶段页 - 左右分栏布局 -->
+        <div class="page" id="exam-page">
+            <h1>笔试阶段（120分钟/12轮，每轮10分钟）</h1>
+            <div class="btn-group">
+                <button class="btn" onclick="nextExamRound()">进行下一轮笔试</button>
+                <button class="btn" onclick="gotoMainMatch()" style="display: none;" id="exam-finish-btn">进入正赛阶段</button>
+            </div>
+            <div class="layout-row">
+                <div class="layout-left">
+                    <div class="ranking-container" id="exam-ranking"></div>
+                </div>
+                <div class="layout-right">
+                    <div class="log-area" id="exam-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 正赛阶段页 - 左右分栏布局 -->
+        <div class="page" id="mainmatch-page">
+            <h1 id="mainmatch-day-title">正赛 Day1（300分钟/30轮，每轮10分钟）</h1>
+            <div class="btn-group">
+                <button class="btn" onclick="nextDailyRound()">进行下一轮</button>
+                <button class="btn" onclick="processDailyDeduction()" style="display: none;" id="deduction-btn">处理当日挂分</button>
+                <button class="btn" onclick="showDailyRanking()" style="display: none;" id="daily-ranking-btn">查看当日排行榜</button>
+                <button class="btn" onclick="dailyInteraction()" style="display: none;" id="interaction-btn">赛后互动</button>
+                <button class="btn" onclick="nextDay()" style="display: none;" id="next-day-btn">进入下一天</button>
+                <button class="btn" onclick="forceFinishMainMatch()" style="display: none; background: #ff4444; border-color: #ff4444;" id="force-finish-btn">直接完成所有比赛</button>
+            </div>
+            <div class="layout-row">
+                <div class="layout-left">
+                    <div class="ranking-container" id="daily-ranking"></div>
+                </div>
+                <div class="layout-right">
+                    <div class="log-area" id="mainmatch-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最终结果页 -->
+        <div class="page" id="result-page">
+            <h1>${gameState.dailyTotalDays || 5}天正赛最终结算</h1>
+            <div id="final-ranking"></div>
+            <div class="log-area" id="champion-speech"></div>
+            <div class="btn-group">
+                <button class="btn" onclick="restartGame()">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态管理 - 新增训练阶段相关状态
+        const gameState = {
+            contestants: [],
+            examProblem: {},
+            dailyProblems: [],
+            contestantCount: 2,
+            dailyProbCount: 2,
+            examCurrentRound: 0,
+            examTotalRounds: 12,
+            currentDay: 0,
+            dailyTotalDays: 5,
+            dailyCurrentRound: 0,
+            dailyTotalRounds: 30,
+            dailyDeductionProcessed: false,
+            dailyRankingShown: false,
+            interactionProcessed: false,
+            lastExamRanking: [],
+            lastExamScores: {},
+            lastDailyRanking: [],
+            lastDailyScores: {},
+            // 训练阶段状态
+            trainingWeeksLeft: 10,
+            captainIndex: 0, // 第一个选手为队长
+            // 压力等级配置（0-5）
+            stressLevels: [
+                { name: "无", class: "stress-none", value: 0 },
+                { name: "低", class: "stress-low", value: 20 },
+                { name: "中", class: "stress-medium", value: 40 },
+                { name: "较大", class: "stress-high-medium", value: 60 },
+                { name: "大", class: "stress-high", value: 80 },
+                { name: "退队倾向", class: "stress-quit", value: 100 }
+            ],
+            // 题目难度配置
+            problemDifficulties: [
+                { 
+                    name: "入门", 
+                    class: "diff-beginner", 
+                    abilityCount: 1, 
+                    abilityMin: 1, 
+                    abilityMax: 5, 
+                    stressAdd: 5,
+                    desc: "基础入门题，适合新手"
+                },
+                { 
+                    name: "普及-", 
+                    class: "diff-popular-minus", 
+                    abilityCount: 1, 
+                    abilityMin: 6, 
+                    abilityMax: 10, 
+                    stressAdd: 10,
+                    desc: "初级普及题，巩固基础"
+                },
+                { 
+                    name: "普及/提高-", 
+                    class: "diff-popular", 
+                    abilityCount: 2, 
+                    abilityMin: 11, 
+                    abilityMax: 15, 
+                    stressAdd: 15,
+                    desc: "普及到提高过渡题，提升综合能力"
+                },
+                { 
+                    name: "提高+/省选-", 
+                    class: "diff-improve-plus", 
+                    abilityCount: 2, 
+                    abilityMin: 16, 
+                    abilityMax: 20, 
+                    stressAdd: 20,
+                    desc: "提高到省选过渡题，难度较高"
+                },
+                { 
+                    name: "省选/NOI", 
+                    class: "diff-provincial", 
+                    abilityCount: 3, 
+                    abilityMin: 21, 
+                    abilityMax: 25, 
+                    stressAdd: 25,
+                    desc: "省选级题目，考验深度思维"
+                },
+                { 
+                    name: "NOI/NOI+/CTSC", 
+                    class: "diff-noi", 
+                    abilityCount: 3, 
+                    abilityMin: 26, 
+                    abilityMax: 30, 
+                    stressAdd: 30,
+                    desc: "顶级竞赛题，挑战极限"
+                }
+            ],
+            // 模拟赛状态
+            mockCurrentRound: 0,
+            mockTotalRounds: 30,
+            mockDeductionProcessed: false,
+            mockRankingShown: false,
+            mockProblems: [],
+            mockScores: {},
+            mockDailyTotal: {}
+        };
+
+        // 常量定义（保留原有）
+        const DEFAULT_COLOR = "#ffffff";
+        const GRAY_COLOR = "#aaaaaa";
+        const POSITIVE_TALENT_DESC = [
+            "临时变强", "冷静", "数据结构狂爱者", "数学天才", "DP大师",
+            "字符串达人", "图论专家", "代码快手", "思维爆发", "心态稳健",
+            "灵感迸发", "关键突破", "纠错本能", "速算加持", "抗压强化"
+        ];
+        const NEGATIVE_TALENT_DESC = [
+            "拖延症", "粗心大意", "畏惧难题", "图论恐惧症", "字符串薄弱",
+            "数学短板", "DP迟钝", "代码洁癖", "容易焦虑", "专注力差"
+        ];
+        const ABILITY_NAMES = [
+            "DP能力", "数据结构能力", "数学能力", "字符串能力",
+            "图论能力", "思维能力", "代码能力", "心态稳定性"
+        ];
+        const ABILITY_KEYS = [
+            "dpAbility", "dsAbility", "mathAbility", "strAbility",
+            "graphAbility", "thinkAbility", "codeAbility", "mentalStability"
+        ];
+        const KNOWLEDGE_POINTS = [
+            "动态规划", "数据结构", "数论", "字符串处理",
+            "图论算法", "贪心策略", "代码优化", "复杂度分析",
+            "二分查找", "前缀和", "并查集", "最短路算法"
+        ];
+        const INTERACTION_2P = [
+            "与{}一起组队刷题，互相激励，共同进步！",
+            "向{}讲解了今日难题的解题思路，ta 恍然大悟！",
+            "和{}一起吐槽今天的题目难度，缓解了比赛压力～",
+            "与{}交换了学习笔记，分享了各自的算法技巧，收获满满！",
+            "仔细研读了{}的算法学习笔记，{}的思路清晰易懂，{}的{}提升了{}点！",
+            "观看了{}分享的竞赛PPT，对{}相关知识点有了新的理解，{}的{}+{}！",
+            "拜读了{}的技术博客，学到了优化代码的实用技巧，{}的代码能力提升了{}点！",
+            "向{}借阅了竞赛备考资料，重点学习了{}模块，{}的{}提升了{}点！",
+            "向{}请教了图论难题的解题技巧，茅塞顿开！",
+            "和{}一起在线上OJ提交了今日的补题代码，全部AC！",
+            "与{}复盘今日比赛的失误点，制定了明日的改进计划！",
+            "请{}喝了奶茶，边喝边讨论{}算法的优化方案！",
+            "和{}一起观看了算法竞赛直播，学习大佬的解题思路！"
+        ];
+        const INTERACTION_3P = [
+            "与{}、{}组队打florr放松心情，赛后氛围十分欢乐！",
+            "和{}、{}一起复盘今日比赛错题，总结了很多改进方向！",
+            "与{}、{}聚餐聊天，从比赛聊到生活，缓解了紧张情绪～",
+            "和{}、{}共同学习新算法，为明天的比赛做好充分准备！",
+            "与{}、{}组成学习小组，针对{}模块进行专项训练！",
+            "和{}、{}一起参加了赛后答疑会，向裁判请教了难题解法！",
+            "与{}、{}线上连麦，讲解各自的比赛代码，互相指出优化点！",
+            "和{}、{}打赌明日比赛的排名，输的人请喝咖啡～"
+        ];
+        const EXAM_SLACK_ACTIONS = [
+            "在卷子上画起了二次元动漫人物",
+            "在草稿纸上默写《出师表》",
+            "在厕所唱歌",
+            "东张西望",
+            "整理起了桌面的文具和资料"
+        ];
+        const COMPLEXITY_POOL = [
+            "O(n)", "O(n log n)", "O(n²)", "O(m + n)", "O(m log n)", 
+            "O(k * n)", "O(2ⁿ)", "O(n³)", "O(√n)"
+        ];
+        const SPECIAL_PROP_POOL = [
+            "n ≤ 100", "数据随机", "无重复元素", "图为树结构", 
+            "DP状态无后效性", "字符串仅含小写字母", "数学性质：模998244353", "贪心策略可过"
+        ];
+
+        // 工具函数（新增/修改）
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function clamp(val, min, max) {
+            return Math.max(min, Math.min(max, val));
+        }
+
+        function stringFormat(fmt, args) {
+            let result = fmt;
+            let argIdx = 0;
+            let pos = result.indexOf("{}");
+            while (pos !== -1 && argIdx < args.length) {
+                result = result.replace("{}", args[argIdx]);
+                argIdx++;
+                pos = result.indexOf("{}", pos + (argIdx > 0 ? args[argIdx-1].length : 2));
+            }
+            return result;
+        }
+
+        function getScoreBgClass(score) {
+            if (score <= 30) return "score-red";
+            else if (score <= 50) return "score-orange";
+            else if (score <= 70) return "score-yellow";
+            else if (score <= 80) return "score-cyan";
+            else return "score-green";
+        }
+
+        function getTalentClass(talentIdx) {
+            const talentClasses = [
+                "talent-temp-power", "talent-calm", "talent-ds-lover", "talent-math-genius", "talent-dp-master",
+                "talent-str-expert", "talent-graph-pro", "talent-code-fast", "talent-think-burst", "talent-mental-strong",
+                "talent-inspiration", "talent-breakthrough", "talent-error-correction", "talent-speed-boost", "talent-stress-resistance"
+            ];
+            return talentClasses[talentIdx] || "talent-negative";
+        }
+
+        function printText(elementId, text, speed = 10, callback) {
+            const logArea = document.getElementById(elementId);
+            logArea.innerHTML = "";
+            let idx = 0;
+            
+            function printChar() {
+                if (idx < text.length) {
+                    logArea.innerHTML += text.charAt(idx);
+                    logArea.scrollTop = logArea.scrollHeight;
+                    idx++;
+                    setTimeout(printChar, speed);
+                } else if (callback) {
+                    setTimeout(callback, 500);
+                }
+            }
+            
+            printChar();
+        }
+
+        function addLog(elementId, text, className = "") {
+            const logArea = document.getElementById(elementId);
+            const logLine = document.createElement("div");
+            logLine.className = className;
+            logLine.textContent = text;
+            logArea.appendChild(logLine);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll(".page").forEach(page => {
+                page.classList.remove("active");
+            });
+            document.getElementById(pageId).classList.add("active");
+        }
+
+        // 新增：获取压力等级类
+        function getStressClass(stressValue) {
+            for (let i = gameState.stressLevels.length - 1; i >= 0; i--) {
+                if (stressValue >= gameState.stressLevels[i].value) {
+                    return gameState.stressLevels[i].class;
+                }
+            }
+            return gameState.stressLevels[0].class;
+        }
+
+        // 新增：获取压力等级名称
+        function getStressName(stressValue) {
+            for (let i = gameState.stressLevels.length - 1; i >= 0; i--) {
+                if (stressValue >= gameState.stressLevels[i].value) {
+                    return gameState.stressLevels[i].name;
+                }
+            }
+            return gameState.stressLevels[0].name;
+        }
+
+        // 新增：随机选择不重复的能力索引
+        function getRandomAbilities(count) {
+            const shuffled = [...ABILITY_KEYS].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        // 初始化函数（修改）
+        function startGame() {
+            const countInput = document.getElementById("contestant-count");
+            countInput.addEventListener("change", updateContestantNameInputs);
+            updateContestantNameInputs();
+            
+            showPage("config-page");
+        }
+
+        function updateContestantNameInputs() {
+            const count = parseInt(document.getElementById("contestant-count").value);
+            const container = document.getElementById("contestant-names");
+            container.innerHTML = "";
+            
+            for (let i = 0; i < count; i++) {
+                const formGroup = document.createElement("div");
+                formGroup.className = "form-group";
+                const defaultName = i === 0 ? "tanruiqing" : `选手${i+1}`; // 第一个选手默认tanruiqing（队长）
+                formGroup.innerHTML = `
+                    <label for="contestant-name-${i}">第${i+1}位选手姓名${i === 0 ? "（队长）" : ""}</label>
+                    <input type="text" id="contestant-name-${i}" value="${defaultName}">
+                `;
+                container.appendChild(formGroup);
+            }
+        }
+
+        // 选手生成相关函数（修改：初始能力值改为0，新增压力值）
+        function generateContestants() {
+            gameState.contestantCount = parseInt(document.getElementById("contestant-count").value);
+            gameState.dailyProbCount = parseInt(document.getElementById("daily-prob-count").value);
+            gameState.contestants = [];
+            gameState.captainIndex = 0; // 第一个为队长
+            
+            // 生成选手
+            for (let i = 0; i < gameState.contestantCount; i++) {
+                const nameInput = document.getElementById(`contestant-name-${i}`);
+                const name = nameInput.value || `选手${i+1}`;
+                
+                const contestant = {
+                    name: name,
+                    isCaptain: i === 0, // 第一个为队长
+                    preAwards: [],
+                    dpAbility: 0, // 初始能力值改为0
+                    dsAbility: 0,
+                    mathAbility: 0,
+                    strAbility: 0,
+                    graphAbility: 0,
+                    thinkAbility: 0,
+                    codeAbility: 0,
+                    mentalStability: 0,
+                    positiveTalents: [],
+                    negativeTalent: -1, // 初始无负面技能
+                    hasNegativeTalent: false,
+                    talentActivated: false,
+                    stressResistanceActive: false,
+                    stressResistanceRemain: 0,
+                    speedBoostActive: false,
+                    examScore: 0,
+                    examProblemScore: 0,
+                    dailyTotal: Array(gameState.dailyTotalDays).fill(0),
+                    totalScore: 0,
+                    championScore: 0,
+                    problemScores: [],
+                    problemCompleteRounds: [],
+                    currentProblem: Array(gameState.dailyTotalDays).fill(0),
+                    stuckRounds: Array(gameState.dailyTotalDays).fill(0),
+                    currentPartScore: Array(gameState.dailyTotalDays).fill(0),
+                    isCollapsed: false,
+                    collapseRemain: 0,
+                    examTimeHalf: false,
+                    dailyTimeHalf: Array(gameState.dailyTotalDays).fill(false),
+                    // 新增训练相关状态
+                    stressValue: 0, // 初始压力值0（无压力）
+                    isQuit: false // 是否退队
+                };
+                
+                // 生成基础能力（改为全部0，原函数逻辑修改）
+                generateBaseAbilities(contestant);
+                // 分配前置奖项
+                assignPreAwards(contestant);
+                // 分配天赋（初始无负面技能）
+                assignTalents(contestant);
+                // 计算夺冠评分（基于初始0能力）
+                calculateChampionScore(contestant);
+                // 初始化题目得分
+                for (let day = 0; day < gameState.dailyTotalDays; day++) {
+                    contestant.problemScores.push(Array(gameState.dailyProbCount).fill(0));
+                    contestant.problemCompleteRounds.push(Array(gameState.dailyProbCount).fill(-1));
+                }
+                
+                gameState.contestants.push(contestant);
+            }
+            
+            // 生成题目
+            generateProblems();
+            
+            // 输出选手信息
+            const logArea = document.getElementById("contestant-info-log");
+            logArea.innerHTML = "";
+            
+            // 排序夺冠热门
+            const championCandidates = [...gameState.contestants];
+            championCandidates.sort((a, b) => b.championScore - a.championScore);
+            const topCount = Math.min(3, championCandidates.length);
+            
+            addLog("contestant-info-log", "===== 参赛选手档案 =====");
+            gameState.contestants.forEach(contestant => {
+                addLog("contestant-info-log", `\n【${contestant.name} ${contestant.isCaptain ? "（队长）" : ""}的参赛档案】`);
+                
+                // 前置奖项
+                addLog("contestant-info-log", "【前置奖项（按年份排序）】");
+                contestant.preAwards.sort((a, b) => a.year - b.year);
+                contestant.preAwards.forEach(award => {
+                    addLog("contestant-info-log", `- ${award.name}（${award.year}年）`);
+                });
+                
+                // 基础能力（初始为0）
+                addLog("contestant-info-log", "【基础能力值（初始为0）】");
+                addLog("contestant-info-log", 
+                    `DP：${contestant.dpAbility} | 数据结构：${contestant.dsAbility} | 数学：${contestant.mathAbility} | 字符串：${contestant.strAbility} | 图论：${contestant.graphAbility}`);
+                addLog("contestant-info-log", 
+                    `思维能力：${contestant.thinkAbility} | 代码能力：${contestant.codeAbility} | 心态稳定性：${contestant.mentalStability}`);
+                
+                // 天赋
+                addLog("contestant-info-log", "【天赋组合】");
+                let talentText = "积极天赋：";
+                contestant.positiveTalents.forEach((talent, idx) => {
+                    if (idx > 0) talentText += " + ";
+                    talentText += `<span class="${getTalentClass(talent)}">${POSITIVE_TALENT_DESC[talent]}</span>`;
+                });
+                const talentDiv = document.createElement("div");
+                talentDiv.innerHTML = talentText;
+                logArea.appendChild(talentDiv);
+                
+                if (contestant.hasNegativeTalent) {
+                    addLog("contestant-info-log", 
+                        `负面天赋：<span class="talent-negative">${NEGATIVE_TALENT_DESC[contestant.negativeTalent]}</span>`);
+                } else {
+                    addLog("contestant-info-log", "负面天赋：无");
+                }
+            });
+            
+            // 输出夺冠热门
+            addLog("contestant-info-log", "\n===== 本次比赛夺冠热门 =====");
+            for (let i = 0; i < topCount; i++) {
+                addLog("contestant-info-log", 
+                    `${i+1}. ${championCandidates[i].name}（综合评分：${championCandidates[i].championScore.toFixed(1)}）`);
+            }
+        }
+
+        // 修改：基础能力生成改为全部0
+        function generateBaseAbilities(contestant) {
+            contestant.dpAbility = 0;
+            contestant.dsAbility = 0;
+            contestant.mathAbility = 0;
+            contestant.strAbility = 0;
+            contestant.graphAbility = 0;
+            contestant.thinkAbility = 0;
+            contestant.codeAbility = 0;
+            contestant.mentalStability = 0;
+        }
+
+        // 分配天赋（修改：初始无负面技能）
+        function assignTalents(contestant) {
+            // 分配1-4个积极天赋
+            const posTalentCount = randInt(1, 4);
+            for (let i = 0; i < posTalentCount; i++) {
+                const talent = randInt(0, 14); // 0-14共15个积极天赋
+                if (!contestant.positiveTalents.includes(talent)) {
+                    contestant.positiveTalents.push(talent);
+                }
+            }
+            
+            contestant.hasNegativeTalent = false; // 初始无负面技能
+            contestant.negativeTalent = -1;
+            contestant.talentActivated = false;
+        }
+
+        // 保留原有函数（assignPreAwards、calculateChampionScore、generateProblems）
+        function assignPreAwards(contestant) {
+            const awardCount = randInt(1, 5);
+            const usedCategories = new Set();
+            const usedAwards = new Set();
+            
+            const PRE_AWARD_POOL = [
+                [{"name":"CSP-J1", "minYear":2020, "maxYear":2025}, {"name":"CSP-J2", "minYear":2020, "maxYear":2025}, {"name":"CSP-J3", "minYear":2020, "maxYear":2025}],
+                [{"name":"CSP-S1", "minYear":2020, "maxYear":2025}, {"name":"CSP-S2", "minYear":2020, "maxYear":2025}, {"name":"CSP-S3", "minYear":2020, "maxYear":2025}],
+                [{"name":"NOIP1", "minYear":2020, "maxYear":2025}, {"name":"NOIP2", "minYear":2020, "maxYear":2025}, {"name":"NOIP3", "minYear":2020, "maxYear":2025}],
+                [{"name":"NOI1", "minYear":2020, "maxYear":2025}, {"name":"NOI2", "minYear":2020, "maxYear":2025}, {"name":"NOI3", "minYear":2020, "maxYear":2025}],
+                [{"name":"APIO金牌", "minYear":2020, "maxYear":2025}, {"name":"APIO银牌", "minYear":2020, "maxYear":2025}, {"name":"APIO铜牌", "minYear":2020, "maxYear":2025}],
+                [{"name":"清华冬练营金牌", "minYear":2020, "maxYear":2025}, {"name":"清华冬练营银牌", "minYear":2020, "maxYear":2025}, {"name":"清华冬练营铜牌", "minYear":2020, "maxYear":2025}],
+                [{"name":"XX省A队", "minYear":2020, "maxYear":2025}, {"name":"XX省B队", "minYear":2020, "maxYear":2025}, {"name":"XX省C队", "minYear":2020, "maxYear":2025}]
+            ];
+            
+            for (let i = 0; i < awardCount; i++) {
+                const availableCategories = [];
+                for (let j = 0; j < PRE_AWARD_POOL.length; j++) {
+                    if (!usedCategories.has(j)) availableCategories.push(j);
+                }
+                if (availableCategories.length === 0) break;
+                
+                const category = availableCategories[randInt(0, availableCategories.length - 1)];
+                usedCategories.add(category);
+                
+                const awards = PRE_AWARD_POOL[category];
+                const awardIdx = randInt(0, awards.length - 1);
+                const award = awards[awardIdx];
+                
+                if (usedAwards.has(award.name)) continue;
+                usedAwards.add(award.name);
+                
+                const year = randInt(award.minYear, award.maxYear);
+                contestant.preAwards.push({name: award.name, year: year});
+            }
+        }
+
+        function calculateChampionScore(contestant) {
+            const abilityAvg = (
+                contestant.dpAbility + contestant.dsAbility + contestant.mathAbility + contestant.strAbility +
+                contestant.graphAbility + contestant.thinkAbility + contestant.codeAbility + contestant.mentalStability
+            ) / 8.0;
+            
+            let talentBonus = 0;
+            contestant.positiveTalents.forEach(talent => {
+                switch (talent) {
+                    case 2: case 3: case 4: case 5: case 6:
+                        talentBonus += 5; break;
+                    case 7: talentBonus += 3; break;
+                    case 8: talentBonus += 4; break;
+                    case 9: talentBonus += 3; break;
+                    case 0: talentBonus += 4; break;
+                    case 1: talentBonus += 2; break;
+                    case 10: talentBonus += 3; break;
+                    case 11: talentBonus += 4; break;
+                    case 12: talentBonus += 2; break;
+                    case 13: talentBonus += 3; break;
+                    case 14: talentBonus += 3; break;
+                }
+            });
+            
+            let negativePenalty = 0;
+            if (contestant.hasNegativeTalent) {
+                switch (contestant.negativeTalent) {
+                    case 3: case 4: case 5: case 6:
+                        negativePenalty = 3; break;
+                    case 7: negativePenalty = 2; break;
+                    case 8: case 9: negativePenalty = 2; break;
+                    case 0: case 1: case 2: negativePenalty = 1; break;
+                }
+            }
+            
+            contestant.championScore = abilityAvg + talentBonus - negativePenalty;
+        }
+
+function generateProblems() {
+    // 辅助函数：计算单个选手的综合能力（覆盖题目所有维度，确保能力值≥30）
+    const getContestantTotalAbility = (contestant) => {
+        const ability = (
+            contestant.dpAbility * 0.2 +    
+            contestant.dsAbility * 0.2 +
+            contestant.mathAbility * 0.2 +
+            contestant.strAbility * 0.2 +
+            contestant.graphAbility * 0.2 +
+            contestant.thinkAbility * 0.1 +
+            contestant.codeAbility * 0.1
+        );
+        return Math.max(ability, 30); // 选手综合能力保底≥30，避免基数过低
+    };
+
+    // 第一步：计算选手综合能力的「中位数」作为难度基准（保底≥30）
+    const contestantAbilities = gameState.contestants.map(c => getContestantTotalAbility(c));
+    const sortedAbilities = [...contestantAbilities].sort((a, b) => a - b);
+    let medianAbility = 40; 
+    const midIdx = Math.floor(sortedAbilities.length / 2);
+    if (sortedAbilities.length % 2 === 1) {
+        medianAbility = Math.max(sortedAbilities[midIdx], 30); // 中位数保底≥30
+    } else {
+        medianAbility = Math.max((sortedAbilities[midIdx - 1] + sortedAbilities[midIdx]) / 2, 30);
+    }
+
+    // 第二步：生成笔试题目（简单，保底≥25）
+    const examBase = Math.min(Math.max(medianAbility * 0.7 + randInt(-2, 2), 25), 95);
+    gameState.examProblem = {
+        dp: Math.max(examBase + randInt(-2, 2), 25),
+        dataStruct: Math.max(examBase + randInt(-2, 2), 25),
+        math: Math.max(examBase + randInt(-2, 2), 25),
+        str: Math.max(examBase + randInt(-2, 2), 25),
+        graph: Math.max(examBase + randInt(-2, 2), 25),
+        thinkDiff: Math.max(examBase + 2, 27), // 笔试思维难度保底27
+        codeDiff: Math.max(examBase + 1, 26),  // 笔试代码难度保底26
+        index: 0,
+        fullComplexity: COMPLEXITY_POOL[randInt(0, 1)],
+        partScores: [
+            {score: 10, diffCoeff: 0.2, complexity: COMPLEXITY_POOL[0], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+            {score: 30, diffCoeff: 0.4, complexity: COMPLEXITY_POOL[0], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+            {score: 60, diffCoeff: 0.6, complexity: COMPLEXITY_POOL[1], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+            {score: 100, diffCoeff: 0.8, complexity: COMPLEXITY_POOL[1], specialProp: "无特殊性质，需最优解"}
+        ]
+    };
+
+    // 第三步：生成正赛题目（强制保底，杜绝低难度）
+    gameState.dailyProblems = [];
+    // 天数难度系数+保底下限：Day1/2=1.0（保底30）、Day3-5=1.25（保底40）
+    const dayConfig = [
+        {factor: 1.0, min: 30}, // Day1
+        {factor: 1.0, min: 30}, // Day2
+        {factor: 1.25, min: 40}, // Day3
+        {factor: 1.25, min: 40}, // Day4
+        {factor: 1.25, min: 40}  // Day5
+    ];
+
+    for (let day = 0; day < gameState.dailyTotalDays; day++) {
+        const dayProbs = [];
+        const config = dayConfig[day] || {factor: 1.0, min: 30};
+        const dayBase = Math.min(Math.max(medianAbility * config.factor, config.min), 95); // 当日基础难度（保底）
+
+        for (let i = 0; i < gameState.dailyProbCount; i++) {
+            // 浮动范围随天数/题号递增（但不低于保底）
+            const baseFloat = day < 2 ? 5 : 8;
+            const dayFloat = day * 2;
+            const probFloat = i * 1;
+            const finalFloatRange = baseFloat + dayFloat + probFloat;
+            
+            // 单个题目基础值（保底+浮动）
+            let probBase = dayBase + randInt(-finalFloatRange, finalFloatRange);
+            probBase = Math.max(probBase, config.min); // 题目基础值保底
+
+            // 难度系数微调（随天数/题号递增）
+            const coeffAdjust = (day * 0.01) + (i * 0.005);
+
+            const partScores = [
+                {score: 10, diffCoeff: 0.2 + probBase*0.003 + coeffAdjust, complexity: COMPLEXITY_POOL[randInt(0, 2)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                {score: 30, diffCoeff: 0.4 + probBase*0.003 + coeffAdjust, complexity: COMPLEXITY_POOL[randInt(0, 3)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                {score: 60, diffCoeff: 0.6 + probBase*0.003 + coeffAdjust, complexity: COMPLEXITY_POOL[randInt(0, 5)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                {score: 100, diffCoeff: 0.8 + probBase*0.002 + coeffAdjust, complexity: COMPLEXITY_POOL[randInt(0, COMPLEXITY_POOL.length - 1)], specialProp: "无特殊性质，需最优解"}
+            ];
+
+            // 单维度难度保底（杜绝个位数）
+            dayProbs.push({
+                dp: Math.max(probBase + randInt(-3, 3), config.min - 5), // 维度值比保底低5，但≥25
+                dataStruct: Math.max(probBase + randInt(-3, 3), config.min - 5),
+                math: Math.max(probBase + randInt(-3, 3), config.min - 5),
+                str: Math.max(probBase + randInt(-3, 3), config.min - 5),
+                graph: Math.max(probBase + randInt(-3, 3), config.min - 5),
+                thinkDiff: Math.max(probBase + 5, config.min + 5), // 思维难度≥保底+5
+                codeDiff: Math.max(probBase + 3, config.min + 3),  // 代码难度≥保底+3
+                index: day * gameState.dailyProbCount + i + 1,
+                fullComplexity: COMPLEXITY_POOL[randInt(0, COMPLEXITY_POOL.length - 1)],
+                partScores: partScores
+            });
+        }
+        gameState.dailyProblems.push(dayProbs);
+    }
+}// 修改训练阶段初始化
+function gotoTraining() {
+    gameState.trainingWeeksLeft = 20; // 10周→20周
+    renderContestantList();
+    updateWeeksLeft();
+    showPage("training-page");
+}
+
+        // 新增：渲染选手信息列表
+        function renderContestantList() {
+            const container = document.getElementById("contestant-list");
+            container.innerHTML = "";
+            
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return; // 跳过退队选手
+                
+                // 创建选手卡片
+                const card = document.createElement("div");
+                card.className = "contestant-card";
+                
+                // 选手姓名（队长标注）
+                const nameEl = document.createElement("div");
+                nameEl.className = "contestant-name";
+                nameEl.textContent = contestant.name + (contestant.isCaptain ? "（队长）" : "");
+                card.appendChild(nameEl);
+                
+                // 能力值网格
+                const abilitiesGrid = document.createElement("div");
+                abilitiesGrid.className = "abilities-grid";
+                
+                // 遍历所有能力，创建能力项
+                ABILITY_KEYS.forEach((key, idx) => {
+                    const abilityItem = document.createElement("div");
+                    abilityItem.className = "ability-item";
+                    
+                    const abilityName = document.createElement("div");
+                    abilityName.className = "ability-name";
+                    abilityName.textContent = ABILITY_NAMES[idx];
+                    
+                    const abilityValue = document.createElement("div");
+                    abilityValue.className = "ability-value";
+                    abilityValue.textContent = contestant[key];
+                    
+                    abilityItem.appendChild(abilityName);
+                    abilityItem.appendChild(abilityValue);
+                    abilitiesGrid.appendChild(abilityItem);
+                });
+                
+                card.appendChild(abilitiesGrid);
+                
+                // 压力状态
+                const stressEl = document.createElement("div");
+                stressEl.className = `stress-status ${getStressClass(contestant.stressValue)}`;
+                stressEl.textContent = `压力：${getStressName(contestant.stressValue)}`;
+                card.appendChild(stressEl);
+                
+                container.appendChild(card);
+            });
+        }
+
+        // 新增：更新剩余周数显示
+        function updateWeeksLeft() {
+            const weeksEl = document.getElementById("weeks-left");
+            weeksEl.textContent = `距离比赛还有：${gameState.trainingWeeksLeft}周`;
+        }
+
+        // 新增：打开刷题选择弹窗
+        function openProblemModal() {
+            const grid = document.getElementById("problem-grid");
+            grid.innerHTML = "";
+            
+            // 随机选择3个不同难度的题目
+            const shuffledDiffs = [...gameState.problemDifficulties].sort(() => 0.5 - Math.random());
+            const selectedDiffs = shuffledDiffs.slice(0, 3);
+            
+            // 生成题目卡片
+            selectedDiffs.forEach(diff => {
+                const problemCard = document.createElement("div");
+                problemCard.className = `problem-card ${diff.class}`;
+                problemCard.setAttribute("data-stress-add", diff.stressAdd);
+                problemCard.setAttribute("data-ability-count", diff.abilityCount);
+                problemCard.setAttribute("data-ability-min", diff.abilityMin);
+                problemCard.setAttribute("data-ability-max", diff.abilityMax);
+                
+                // 难度名称
+                const diffName = document.createElement("div");
+                diffName.className = "problem-difficulty";
+                diffName.textContent = diff.name;
+                problemCard.appendChild(diffName);
+                
+                // 随机选择能力
+                const abilities = getRandomAbilities(diff.abilityCount);
+                abilities.forEach(abilityKey => {
+                    const abilityIdx = ABILITY_KEYS.indexOf(abilityKey);
+                    const abilityName = ABILITY_NAMES[abilityIdx];
+                    const abilityValue = randInt(diff.abilityMin, diff.abilityMax);
+                    
+                    const abilityEl = document.createElement("div");
+                    abilityEl.className = "problem-ability";
+                    abilityEl.textContent = `${abilityName} +${abilityValue}点`;
+                    problemCard.appendChild(abilityEl);
+                    
+                    // 存储能力信息到卡片
+                    problemCard.setAttribute(`data-ability-${abilityKey}`, abilityValue);
+                });
+                
+                // 压力增加提示
+                const stressEl = document.createElement("div");
+                stressEl.className = "problem-stress";
+                stressEl.textContent = `压力+${diff.stressAdd}`;
+                problemCard.appendChild(stressEl);
+                
+                // 点击选择该题目
+                problemCard.onclick = function() {
+                    selectProblem(this);
+                };
+                
+                grid.appendChild(problemCard);
+            });
+            
+            // 显示弹窗
+            document.getElementById("problem-modal").style.display = "flex";
+        }
+
+        // 新增：关闭刷题选择弹窗
+        function closeProblemModal() {
+            document.getElementById("problem-modal").style.display = "none";
+        }
+
+        // 新增：选择刷题难度并执行训练
+        function selectProblem(problemCard) {
+            const stressAdd = parseInt(problemCard.getAttribute("data-stress-add"));
+            const abilityCount = parseInt(problemCard.getAttribute("data-ability-count"));
+            const abilityMin = parseInt(problemCard.getAttribute("data-ability-min"));
+            const abilityMax = parseInt(problemCard.getAttribute("data-ability-max"));
+            
+            // 遍历所有选手执行刷题训练
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                
+                // 增加压力
+                contestant.stressValue = clamp(contestant.stressValue + stressAdd, 0, 100);
+                
+                // 计算压力影响系数（压力越高，实际提升越少）
+                const stressFactor = 1 - (contestant.stressValue / 100) * 0.3; // 最大减少30%
+                
+                // 提升指定能力
+                ABILITY_KEYS.forEach(key => {
+                    const abilityValue = problemCard.getAttribute(`data-ability-${key}`);
+                    if (abilityValue) {
+                        const actualValue = Math.max(1, Math.floor(parseInt(abilityValue) * stressFactor));
+                        contestant[key] = clamp(contestant[key] + actualValue, 0, 100);
+                    }
+                });
+                
+                // 有概率获得负面技能（压力越高概率越高）
+                const negativeProb = (contestant.stressValue / 100) * 0.1; // 最大10%概率
+                if (Math.random() < negativeProb && !contestant.hasNegativeTalent) {
+                    const negativeTalent = randInt(0, NEGATIVE_TALENT_DESC.length - 1);
+                    contestant.negativeTalent = negativeTalent;
+                    contestant.hasNegativeTalent = true;
+                    addLog("contestant-info-log", `[训练日志] ${contestant.name} 因压力过大，获得负面技能：${NEGATIVE_TALENT_DESC[negativeTalent]}`, "talent-negative");
+                }
+            });
+            
+            // 关闭弹窗
+            closeProblemModal();
+            // 结束本周训练
+            finishWeekTraining("刷题训练");
+        }
+
+        // 新增：放松操作
+        function doRelax() {
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                
+                // 减少压力（10-20点）
+                const stressReduce = randInt(10, 20);
+                contestant.stressValue = clamp(contestant.stressValue - stressReduce, 0, 100);
+                addLog("contestant-info-log", `[训练日志] ${contestant.name} 进行放松，压力减少${stressReduce}点，当前压力：${getStressName(contestant.stressValue)}`, "text-green");
+            });
+            
+            finishWeekTraining("放松");
+        }
+
+        // 新增：模拟赛相关函数 - 重构为正赛单日模式
+        function startMockContest() {
+            // 初始化模拟赛状态
+            gameState.mockCurrentRound = 0;
+            gameState.mockDeductionProcessed = false;
+            gameState.mockRankingShown = false;
+            gameState.mockScores = {};
+            gameState.mockDailyTotal = {};
+            
+            // 生成模拟赛题目（基于当前训练进度）
+            gameState.mockProblems = [];
+            const mockBase = 40 + (10 - gameState.trainingWeeksLeft) * 3; // 随训练周数提升难度
+            for (let i = 0; i < gameState.dailyProbCount; i++) {
+                const probIdx = i + 1;
+                const base = Math.min(mockBase + probIdx * 2, 80);
+                
+                               const partScores = [
+                    {score: 10, diffCoeff: 0.2 + base*0.003, complexity: COMPLEXITY_POOL[randInt(0, 2)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                    {score: 30, diffCoeff: 0.4 + base*0.003, complexity: COMPLEXITY_POOL[randInt(0, 3)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                    {score: 60, diffCoeff: 0.6 + base*0.003, complexity: COMPLEXITY_POOL[randInt(0, 5)], specialProp: SPECIAL_PROP_POOL[randInt(0, SPECIAL_PROP_POOL.length - 1)]},
+                    {score: 100, diffCoeff: 0.8 + base*0.002, complexity: COMPLEXITY_POOL[randInt(0, COMPLEXITY_POOL.length - 1)], specialProp: "无特殊性质，需最优解"}
+                ];
+                
+                gameState.mockProblems.push({
+                    dp: base + randInt(-3, 3),
+                    dataStruct: base + randInt(-3, 3),
+                    math: base + randInt(-3, 3),
+                    str: base + randInt(-3, 3),
+                    graph: base + randInt(-3, 3),
+                    thinkDiff: base + 4,
+                    codeDiff: base + 2,
+                    index: probIdx,
+                    fullComplexity: COMPLEXITY_POOL[randInt(0, COMPLEXITY_POOL.length - 1)],
+                    partScores: partScores
+                });
+            }
+            
+            // 初始化选手模拟赛数据
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                gameState.mockDailyTotal[contestant.name] = 0;
+                gameState.mockScores[contestant.name] = Array(gameState.dailyProbCount).fill(0);
+                contestant.mockCurrentProblem = 0;
+                contestant.mockStuckRounds = 0;
+                contestant.mockIsCollapsed = false;
+                contestant.mockCollapseRemain = 0;
+                contestant.mockTimeHalf = false;
+            });
+            
+            // 重置模拟赛按钮状态
+            document.getElementById("mock-deduction-btn").style.display = "none";
+            document.getElementById("mock-ranking-btn").style.display = "none";
+            document.getElementById("mock-finish-btn").style.display = "none";
+            
+            // 清空模拟赛日志
+            const mockLog = document.getElementById("mock-log");
+            mockLog.innerHTML = "";
+            
+            // 输出模拟赛信息
+            addLog("mock-log", "===== 训练模拟赛开始（30轮，每轮10分钟）=====", "text-cyan");
+            addLog("mock-log", `今日题目数量：${gameState.dailyProbCount}道`);
+            
+            // 生成今日题目信息
+            gameState.mockProblems.forEach((prob, idx) => {
+                addLog("mock-log", `第${idx+1}题信息：`);
+                addLog("mock-log", `难度分布 - DP：${prob.dp} | 数据结构：${prob.dataStruct} | 数学：${prob.math} | 字符串：${prob.str} | 图论：${prob.graph}`);
+                addLog("mock-log", `思维难度：${prob.thinkDiff} | 代码难度：${prob.codeDiff}`);
+                addLog("mock-log", `时间复杂度要求：${prob.fullComplexity}`);
+                addLog("mock-log", `部分分设置：`);
+                prob.partScores.forEach((part, pIdx) => {
+                    addLog("mock-log", `  ${pIdx+1}. ${part.score}分 - 难度系数${part.diffCoeff.toFixed(2)} - 复杂度${part.complexity} - 特殊性质：${part.specialProp}`);
+                });
+                addLog("mock-log", "----------------------------------");
+            });
+            
+            // 显示模拟赛页面
+            showPage("mock-contest-page");
+        }
+
+        // 模拟赛下一轮
+        function nextMockRound() {
+            if (gameState.mockCurrentRound >= gameState.mockTotalRounds) {
+                addLog("mock-log", "\n===== 模拟赛轮次全部完成！=====", "text-yellow");
+                addLog("mock-log", "请先处理模拟赛挂分，再查看排行榜");
+                document.getElementById("mock-deduction-btn").style.display = "inline-block";
+                return;
+            }
+            
+            gameState.mockCurrentRound++;
+            const currentRound = gameState.mockCurrentRound;
+            
+            addLog("mock-log", `\n===== 模拟赛第${currentRound}轮（剩余${gameState.mockTotalRounds - currentRound}轮）=====`, "text-yellow");
+            
+            // 处理时间过半
+            if (currentRound === 15 && !Object.values(gameState.contestants).some(c => c.mockTimeHalf)) {
+                addLog("mock-log", "\⚠️ 模拟赛时间已过半！选手们开始加快解题速度...", "text-orange");
+                gameState.contestants.forEach(contestant => {
+                    if (contestant.isQuit) return;
+                    contestant.mockTimeHalf = true;
+                });
+            }
+            
+            // 遍历选手处理本轮解题
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit || contestant.mockIsCollapsed) {
+                    if (contestant.mockIsCollapsed) {
+                        contestant.mockCollapseRemain--;
+                        if (contestant.mockCollapseRemain <= 0) {
+                            contestant.mockIsCollapsed = false;
+                            addLog("mock-log", `${contestant.name} 心态恢复，重新开始解题！`, "text-green");
+                        } else {
+                            addLog("mock-log", `${contestant.name} 仍处于心态崩溃状态（剩余${contestant.mockCollapseRemain}轮），本轮无进展`, "text-red");
+                        }
+                    }
+                    return;
+                }
+                
+                const currentProbIdx = contestant.mockCurrentProblem || 0;
+                if (currentProbIdx >= gameState.dailyProbCount) {
+                    addLog("mock-log", `${contestant.name} 已完成所有模拟赛题目，本轮检查代码优化`, "text-gray");
+                    // 代码优化小幅加分
+                    const optimizeAdd = randInt(0, 2);
+                    gameState.mockDailyTotal[contestant.name] = clamp(
+                        gameState.mockDailyTotal[contestant.name] + optimizeAdd, 
+                        0, 
+                        100 * gameState.dailyProbCount
+                    );
+                    return;
+                }
+                
+                const currentProb = gameState.mockProblems[currentProbIdx];
+                
+                // 检查是否卡题
+                if (contestant.mockStuckRounds > 0) {
+                    contestant.mockStuckRounds--;
+                    const stuckProb = randInt(0, 100);
+                    // 压力越高，卡题时间越长
+                    const stressFactor = 1 + (contestant.stressValue / 100) * 0.5;
+                    
+                    if (stuckProb > 70 * stressFactor) {
+                        addLog("mock-log", `${contestant.name} 终于突破卡题状态！继续解题`, "text-green");
+                    } else {
+                        addLog("mock-log", `${contestant.name} 仍卡在第${currentProbIdx+1}题（剩余${contestant.mockStuckRounds}轮）`, "text-red");
+                        return;
+                    }
+                }
+                
+                // 计算解题进度
+                let progress = 0;
+                
+                // 基础能力得分
+                const baseScore = (
+                    contestant.dpAbility * (100 - currentProb.dp) / 100 +
+                    contestant.dsAbility * (100 - currentProb.dataStruct) / 100 +
+                    contestant.mathAbility * (100 - currentProb.math) / 100 +
+                    contestant.strAbility * (100 - currentProb.str) / 100 +
+                    contestant.graphAbility * (100 - currentProb.graph) / 100
+                ) / 5;
+                
+                // 思维和代码能力修正
+                const thinkScore = contestant.thinkAbility * (100 - currentProb.thinkDiff) / 100;
+                const codeScore = contestant.codeAbility * (100 - currentProb.codeDiff) / 100;
+                
+                // 心态稳定性修正（压力影响）
+                const mentalScore = contestant.mentalStability * (1 - contestant.stressValue / 100);
+                
+                // 天赋激活
+                if (!contestant.talentActivated && Math.random() < 0.08) {
+                    contestant.talentActivated = true;
+                    const talentIdx = contestant.positiveTalents[randInt(0, contestant.positiveTalents.length)];
+                    addLog("mock-log", `${contestant.name} 激活天赋：<span class="${getTalentClass(talentIdx)}">${POSITIVE_TALENT_DESC[talentIdx]}</span>！`, "text-green");
+                    
+                    // 天赋效果
+                    switch (talentIdx) {
+                        case 0: progress += 20; break;
+                        case 1: progress += 15; break;
+                        case 2: case 3: case 4: case 5: case 6: progress += 18; break;
+                        case 7: progress += 12; break;
+                        case 8: progress += 22; break;
+                        case 9: progress += 14; break;
+                        case 10: progress += 16; break;
+                        case 11: progress += 24; break;
+                        case 12: progress += 10; break;
+                        case 13: 
+                            contestant.speedBoostActive = true;
+                            progress += 15; 
+                            break;
+                        case 14: 
+                            contestant.stressResistanceActive = true;
+                            contestant.stressResistanceRemain = 5;
+                            progress += 18; 
+                            break;
+                    }
+                }
+                
+                // 速度加持天赋效果
+                if (contestant.speedBoostActive) {
+                    progress = Math.floor(progress * 1.3);
+                    contestant.speedBoostActive = false; // 仅本轮生效
+                }
+                
+                // 负面天赋惩罚
+                if (contestant.hasNegativeTalent) {
+                    const penalty = randInt(5, 10);
+                    progress -= penalty;
+                    addLog("mock-log", `${contestant.name} 受负面天赋【${NEGATIVE_TALENT_DESC[contestant.negativeTalent]}】影响，解题进度减少${penalty}点`, "text-red");
+                }
+                
+                // 计算总进度
+                progress += baseScore * 0.3 + thinkScore * 0.4 + codeScore * 0.2 + mentalScore * 0.1;
+                progress = clamp(Math.floor(progress), 0, 30);
+                
+                // 时间过半加成
+                if (contestant.mockTimeHalf) {
+                    progress = Math.floor(progress * 1.25);
+                }
+                
+                // 抗压天赋效果
+                if (contestant.stressResistanceActive) {
+                    progress = Math.floor(progress * 1.15);
+                    contestant.stressResistanceRemain--;
+                    if (contestant.stressResistanceRemain <= 0) {
+                        contestant.stressResistanceActive = false;
+                    }
+                }
+                
+                // 更新题目进度
+                currentProb.index += progress;
+                const totalProgress = currentProb.index;
+                
+                // 计算当前得分
+                let currentScore = 0;
+                currentProb.partScores.forEach(part => {
+                    if (totalProgress >= part.score * part.diffCoeff * 10) {
+                        currentScore = part.score;
+                    }
+                });
+                
+                // 更新部分分
+                gameState.mockScores[contestant.name][currentProbIdx] = currentScore;
+                
+                // 检查是否完成当前题目
+                if (currentScore >= 100) {
+                    addLog("mock-log", `${contestant.name} 完成第${currentProbIdx+1}题，获得满分100分！`, "text-green");
+                    contestant.mockCurrentProblem++;
+                    
+                    // 累加模拟赛总分
+                    gameState.mockDailyTotal[contestant.name] += 100;
+                    
+                    // 随机卡题（下一题）
+                    if (contestant.mockCurrentProblem < gameState.dailyProbCount) {
+                        const stuckProb = (contestant.stressValue / 100) * 0.3 + 0.1; // 10%-40%概率
+                        if (Math.random() < stuckProb) {
+                            contestant.mockStuckRounds = randInt(1, 4);
+                            addLog("mock-log", `${contestant.name} 开始解答第${contestant.mockCurrentProblem+1}题，但遇到瓶颈，预计卡题${contestant.mockStuckRounds}轮`, "text-orange");
+                        }
+                    }
+                } else {
+                    // 更新当前得分
+                    const prevScore = gameState.mockScores[contestant.name][currentProbIdx] || 0;
+                    gameState.mockDailyTotal[contestant.name] = clamp(
+                        gameState.mockDailyTotal[contestant.name] + (currentScore - prevScore), 
+                        0, 
+                        100 * gameState.dailyProbCount
+                    );
+                    
+                    addLog("mock-log", `${contestant.name} 第${currentProbIdx+1}题进度+${progress}，累计进度${totalProgress}，当前得分：${currentScore}分`, 
+                        currentScore >= 80 ? "text-green" : currentScore >= 60 ? "text-yellow" : "text-red");
+                    
+                    // 随机心态崩溃（压力高概率更高）
+                    const collapseProb = (contestant.stressValue / 100) * 0.15 + 0.03; // 3%-18%概率
+                    if (Math.random() < collapseProb && !contestant.mockIsCollapsed) {
+                        contestant.mockIsCollapsed = true;
+                        contestant.mockCollapseRemain = randInt(2, 4);
+                        addLog("mock-log", `${contestant.name} 因压力过大心态崩溃！将影响${contestant.mockCollapseRemain}轮解题`, "text-red");
+                        // 分数惩罚
+                        gameState.mockDailyTotal[contestant.name] = Math.floor(gameState.mockDailyTotal[contestant.name] * 0.75);
+                    }
+                }
+            });
+            
+            // 生成模拟赛实时排名（显示每道题得分）
+            generateMockRanking();
+        }
+
+        // 模拟赛挂分处理
+        function processMockDeduction() {
+            if (gameState.mockDeductionProcessed) {
+                alert("模拟赛挂分已处理！");
+                return;
+            }
+            
+            addLog("mock-log", "\n===== 处理模拟赛挂分 =====", "text-orange");
+            
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                const dailyScore = gameState.mockDailyTotal[contestant.name];
+                
+                // 挂分概率与压力正相关
+                const deductionProb = (contestant.stressValue / 100) * 0.4 + 0.05; // 5%-45%概率
+                if (Math.random() < deductionProb) {
+                    const deductionRate = randInt(5, 20) / 100; // 5%-20%挂分
+                    const deductionScore = Math.floor(dailyScore * deductionRate);
+                    gameState.mockDailyTotal[contestant.name] -= deductionScore;
+                    
+                    addLog("mock-log", `${contestant.name} 因压力导致代码出错，挂分${deductionScore}分，模拟赛得分变为${gameState.mockDailyTotal[contestant.name]}分`, "text-red");
+                } else {
+                    addLog("mock-log", `${contestant.name} 代码检查无误，无挂分！`, "text-green");
+                }
+            });
+            
+            gameState.mockDeductionProcessed = true;
+            addLog("mock-log", "\n挂分处理完成，请查看模拟赛排行榜", "text-cyan");
+            document.getElementById("mock-ranking-btn").style.display = "inline-block";
+        }
+
+        // 模拟赛排行榜（显示每道题得分）
+        function generateMockRanking() {
+            // 复制选手数据并排序
+            const ranking = gameState.contestants
+                .filter(c => !c.isQuit)
+                .sort((a, b) => gameState.mockDailyTotal[b.name] - gameState.mockDailyTotal[a.name]);
+            
+            // 生成排名表格（显示每道题得分）
+            const rankingEl = document.getElementById("mock-ranking");
+            let tableHtml = `
+                <h2>模拟赛实时排名（第${gameState.mockCurrentRound}轮）</h2>
+                <table class="ranking-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>选手</th>
+                            ${Array.from({length: gameState.dailyProbCount}, (_, i) => `<th>第${i+1}题得分</th>`).join("")}
+                            <th>总分</th>
+                            <th>完成题目数</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            ranking.forEach((contestant, idx) => {
+                const completedProbs = gameState.mockScores[contestant.name].filter(s => s >= 100).length;
+                const problemScoresHtml = gameState.mockScores[contestant.name].map(score => 
+                    `<td class="${getScoreBgClass(score)} score-shake">${score}</td>`
+                ).join("");
+                
+                tableHtml += `
+                    <tr class="rank-slide">
+                        <td>${idx+1}</td>
+                        <td>${contestant.name} ${contestant.isCaptain ? "（队长）" : ""}</td>
+                        ${problemScoresHtml}
+                        <td class="${getScoreBgClass(gameState.mockDailyTotal[contestant.name])} score-shake">${gameState.mockDailyTotal[contestant.name]}</td>
+                        <td>${completedProbs}/${gameState.dailyProbCount}</td>
+                        <td>${contestant.mockIsCollapsed ? "心态崩溃" : contestant.mockTimeHalf ? "加速解题" : "正常解题"}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+            rankingEl.innerHTML = tableHtml;
+        }
+
+        // 显示模拟赛最终排行榜
+        function showMockRanking() {
+            if (gameState.mockRankingShown) {
+                alert("模拟赛排行榜已查看！");
+                return;
+            }
+            
+            addLog("mock-log", `\n===== 模拟赛最终排行榜 =====`, "text-yellow");
+            
+            const ranking = gameState.contestants
+                .filter(c => !c.isQuit)
+                .sort((a, b) => gameState.mockDailyTotal[b.name] - gameState.mockDailyTotal[a.name]);
+            
+            ranking.forEach((contestant, idx) => {
+                const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
+                const completedProbs = gameState.mockScores[contestant.name].filter(s => s >= 100).length;
+                const problemScores = gameState.mockScores[contestant.name].map((s, i) => `第${i+1}题：${s}`).join(" | ");
+                
+                addLog("mock-log", `${medal} 第${idx+1}名：${contestant.name} - 总分：${gameState.mockDailyTotal[contestant.name]} - 完成题目：${completedProbs}/${gameState.dailyProbCount} - 各题得分：${problemScores}`);
+                
+                // 模拟赛后能力提升
+                ABILITY_KEYS.forEach(key => {
+                    const addValue = randInt(1, 3);
+                    contestant[key] = clamp(contestant[key] + addValue, 0, 100);
+                });
+                // 压力小幅增减
+                const stressChange = randInt(-5, 10);
+                contestant.stressValue = clamp(contestant.stressValue + stressChange, 0, 100);
+                
+                const changeText = stressChange >= 0 ? `增加${stressChange}` : `减少${Math.abs(stressChange)}`;
+                addLog("mock-log", `${contestant.name} 模拟赛后所有能力+1~3点，压力${changeText}点，当前压力：${getStressName(contestant.stressValue)}`);
+            });
+            
+            gameState.mockRankingShown = true;
+            addLog("mock-log", "\n模拟赛完成，可返回训练阶段", "text-cyan");
+            document.getElementById("mock-finish-btn").style.display = "inline-block";
+        }
+
+        // 结束模拟赛返回训练
+        function finishMockContest() {
+            // 结束本周训练
+            finishWeekTraining("模拟赛");
+            // 返回训练页面
+            showPage("training-page");
+        }
+
+        // 查看PPT操作
+        function doViewPPT() {
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                
+                // 随机选择一个能力提升（1-20点）
+                const randomAbilityIdx = randInt(0, ABILITY_KEYS.length - 1);
+                const abilityKey = ABILITY_KEYS[randomAbilityIdx];
+                const addValue = randInt(1, 20);
+                
+                // 压力影响提升效果
+                const stressFactor = 1 - (contestant.stressValue / 100) * 0.25; // 最大减少25%
+                const actualAdd = Math.max(1, Math.floor(addValue * stressFactor));
+                contestant[abilityKey] = clamp(contestant[abilityKey] + actualAdd, 0, 100);
+                
+                // 压力小幅增加（5-10点）
+                const stressAdd = randInt(5, 10);
+                contestant.stressValue = clamp(contestant.stressValue + stressAdd, 0, 100);
+                
+                const abilityName = ABILITY_NAMES[randomAbilityIdx];
+                addLog("contestant-info-log", `[训练日志] ${contestant.name} 查看老师PPT，${abilityName}提升${actualAdd}点，压力增加${stressAdd}点，当前压力：${getStressName(contestant.stressValue)}`, "text-cyan");
+            });
+            
+            finishWeekTraining("查看老师PPT");
+        }
+
+        // 退队操作
+        function doQuitTeam() {
+            if (confirm("确定要退队吗？退队将直接结束游戏！")) {
+                // 队长退队，游戏结束
+                const captain = gameState.contestants[gameState.captainIndex];
+                captain.isQuit = true;
+                
+                addLog("contestant-info-log", `[游戏结束] ${captain.name}（队长）选择退队，游戏结束！`, "text-red");
+                
+                // 显示结束提示
+                alert(`${captain.name}（队长）已退队，游戏结束！`);
+                
+                // 重置游戏
+                restartGame();
+            }
+        }
+
+        // 完成本周训练
+        function finishWeekTraining(actionName) {
+            // 减少剩余训练周数
+           gameState.trainingWeeksLeft--;
+    updateWeeksLeft();
+    // 周数计算改为15 - 剩余周数
+    addLog("contestant-info-log", `\n===== 第${20 - gameState.trainingWeeksLeft}周训练完成（${actionName}）=====`, "text-green");
+
+            addLog("contestant-info-log", `剩余训练周数：${gameState.trainingWeeksLeft}周`);
+            
+            // 检查是否所有选手都退队
+            const allQuit = gameState.contestants.every(c => c.isQuit);
+            if (allQuit) {
+                alert("所有选手都已退队，游戏结束！");
+                restartGame();
+                return;
+            }
+            
+            // 检查训练是否结束
+            if (gameState.trainingWeeksLeft <= 0) {
+                addLog("contestant-info-log", "\n===== 10周训练全部完成！即将进入比赛阶段 =====", "text-yellow");
+                setTimeout(() => {
+                    // 计算最终能力，准备进入笔试阶段
+                    gameState.contestants.forEach(contestant => {
+                        // 压力影响最终心态稳定性
+                        contestant.mentalStability = clamp(contestant.mentalStability - (contestant.stressValue / 100) * 10, 0, 100);
+                        addLog("contestant-info-log", `${contestant.name} 训练最终能力：`);
+                        ABILITY_KEYS.forEach((key, idx) => {
+                            addLog("contestant-info-log", `- ${ABILITY_NAMES[idx]}：${contestant[key]}`);
+                        });
+                        addLog("contestant-info-log", `- 最终压力影响后心态稳定性：${contestant.mentalStability}`);
+                    });
+                    
+                    // 进入笔试阶段
+                    alert("10周训练已完成，现在进入笔试阶段！");
+                    gotoExam();
+                }, 2000);
+            } else {
+                // 重新渲染选手列表
+                renderContestantList();
+            }
+        }
+
+        // 笔试阶段相关函数（保留并优化排行榜）
+        function gotoExam() {
+            gameState.examCurrentRound = 0;
+            gameState.examProblem.index = 0;
+            gameState.lastExamRanking = [];
+            gameState.lastExamScores = {};
+            
+            // 初始化笔试分数
+            gameState.contestants.forEach(contestant => {
+                contestant.examScore = 0;
+                contestant.examProblemScore = 0;
+                contestant.isCollapsed = false;
+                contestant.collapseRemain = 0;
+                contestant.examTimeHalf = false;
+            });
+            
+            showPage("exam-page");
+            addLog("exam-log", "===== 笔试阶段开始（共12轮，每轮10分钟）=====", "text-cyan");
+            addLog("exam-log", "本轮为第1轮，所有选手开始阅读笔试题目...");
+            
+            // 生成笔试题信息
+            const examProb = gameState.examProblem;
+            addLog("exam-log", `笔试题信息：`);
+            addLog("exam-log", `难度分布 - DP：${examProb.dp} | 数据结构：${examProb.dataStruct} | 数学：${examProb.math} | 字符串：${examProb.str} | 图论：${examProb.graph}`);
+            addLog("exam-log", `思维难度：${examProb.thinkDiff} | 代码难度：${examProb.codeDiff}`);
+            addLog("exam-log", `时间复杂度要求：${examProb.fullComplexity}`);
+            addLog("exam-log", `部分分设置：`);
+            examProb.partScores.forEach((part, idx) => {
+                addLog("exam-log", `  ${idx+1}. ${part.score}分 - 难度系数${part.diffCoeff.toFixed(2)} - 复杂度${part.complexity} - 特殊性质：${part.specialProp}`);
+            });
+        }
+
+        function nextExamRound() {
+            if (gameState.examCurrentRound >= gameState.examTotalRounds) {
+                alert("笔试已结束！");
+                document.getElementById("exam-finish-btn").style.display = "inline-block";
+                return;
+            }
+            
+            gameState.examCurrentRound++;
+            const currentRound = gameState.examCurrentRound;
+            
+            addLog("exam-log", `\n===== 笔试第${currentRound}轮（剩余${gameState.examTotalRounds - currentRound}轮）=====`, "text-yellow");
+            
+            // 处理时间过半
+            if (currentRound === 6 && !gameState.contestants.some(c => c.examTimeHalf)) {
+                addLog("exam-log", "\n⚠️ 笔试时间已过半！选手们开始加快解题速度...", "text-orange");
+                gameState.contestants.forEach(contestant => {
+                    contestant.examTimeHalf = true;
+                });
+            }
+            
+            // 遍历选手处理本轮笔试
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isCollapsed) {
+                    contestant.collapseRemain--;
+                    if (contestant.collapseRemain <= 0) {
+                        contestant.isCollapsed = false;
+                        addLog("exam-log", `${contestant.name} 心态恢复，重新开始解题！`, "text-green");
+                    } else {
+                        addLog("exam-log", `${contestant.name} 仍处于心态崩溃状态（剩余${contestant.collapseRemain}轮），本轮无进展`, "text-red");
+                        return;
+                    }
+                }
+                
+                // 随机摸鱼行为（压力高概率更高）
+                const slackProb = (contestant.stressValue / 100) * 0.2 + 0.05; // 5%-25%概率
+                if (Math.random() < slackProb) {
+                    const slackAction = EXAM_SLACK_ACTIONS[randInt(0, EXAM_SLACK_ACTIONS.length - 1)];
+                    addLog("exam-log", `${contestant.name} 本轮摸鱼：${slackAction}，解题无进展`, "text-gray");
+                    return;
+                }
+                
+                // 计算解题进度
+                const examProb = gameState.examProblem;
+                let progress = 0;
+                
+                // 基础能力得分
+                const baseScore = (
+                    contestant.dpAbility * (100 - examProb.dp) / 100 +
+                    contestant.dsAbility * (100 - examProb.dataStruct) / 100 +
+                    contestant.mathAbility * (100 - examProb.math) / 100 +
+                    contestant.strAbility * (100 - examProb.str) / 100 +
+                    contestant.graphAbility * (100 - examProb.graph) / 100
+                ) / 5;
+                
+                // 思维和代码能力修正
+                const thinkScore = contestant.thinkAbility * (100 - examProb.thinkDiff) / 100;
+                const codeScore = contestant.codeAbility * (100 - examProb.codeDiff) / 100;
+                
+                // 心态稳定性修正（压力影响）
+                const mentalScore = contestant.mentalStability * (1 - contestant.stressValue / 100);
+                
+                // 天赋激活
+                if (!contestant.talentActivated && Math.random() < 0.1) {
+                    contestant.talentActivated = true;
+                    const talentIdx = contestant.positiveTalents[randInt(0, contestant.positiveTalents.length)];
+                    addLog("exam-log", `${contestant.name} 激活天赋：<span class="${getTalentClass(talentIdx)}">${POSITIVE_TALENT_DESC[talentIdx]}</span>！`, "text-green");
+                    
+                    // 天赋效果
+                    switch (talentIdx) {
+                        case 0: // 临时变强
+                            progress += 15; break;
+                        case 1: // 冷静
+                            progress += 10; break;
+                        case 2: case 3: case 4: case 5: case 6: // 专项能力
+                            progress += 12; break;
+                        case 7: // 代码快手
+                            progress += 8; break;
+                        case 8: // 思维爆发
+                            progress += 14; break;
+                        case 9: // 心态稳健
+                            progress += 9; break;
+                        case 10: // 灵感迸发
+                            progress += 11; break;
+                        case 11: // 关键突破
+                            progress += 13; break;
+                        case 12: // 纠错本能
+                            progress += 7; break;
+                        case 13: // 速算加持
+                            progress += 8; break;
+                        case 14: // 抗压强化
+                            contestant.stressResistanceActive = true;
+                            contestant.stressResistanceRemain = 3;
+                            progress += 10; break;
+                    }
+                }
+                
+                // 负面天赋惩罚
+                if (contestant.hasNegativeTalent) {
+                    const penalty = randInt(3, 8);
+                    progress -= penalty;
+                    addLog("exam-log", `${contestant.name} 受负面天赋【${NEGATIVE_TALENT_DESC[contestant.negativeTalent]}】影响，解题进度减少${penalty}点`, "text-red");
+                }
+                
+                // 计算总进度
+                progress += baseScore + thinkScore + codeScore + mentalScore;
+                progress = clamp(Math.floor(progress), 0, 100);
+                
+                // 时间过半加成
+                if (contestant.examTimeHalf) {
+                    progress = Math.floor(progress * 2);
+                }
+                
+                // 抗压天赋效果
+                if (contestant.stressResistanceActive) {
+                    progress = Math.floor(progress * 1.1);
+                    contestant.stressResistanceRemain--;
+                    if (contestant.stressResistanceRemain <= 0) {
+                        contestant.stressResistanceActive = false;
+                    }
+                }
+                
+                // 更新题目进度
+                gameState.examProblem.index += progress;
+                const totalProgress = gameState.examProblem.index;
+                
+                // 计算当前得分
+                let currentScore = 0;
+                examProb.partScores.forEach(part => {
+                    if (totalProgress >= part.score * part.diffCoeff * 10) {
+                        currentScore = part.score;
+                    }
+                });
+                
+                // 更新选手分数
+                contestant.examProblemScore = currentScore;
+                contestant.examScore = currentScore;
+                
+                // 随机心态崩溃（压力高概率更高）
+                const collapseProb = (contestant.stressValue / 100) * 0.1 + 0.02; // 2%-12%概率
+                if (Math.random() < collapseProb && !contestant.isCollapsed) {
+                    contestant.isCollapsed = true;
+                    contestant.collapseRemain = randInt(1, 3);
+                    addLog("exam-log", `${contestant.name} 因压力过大心态崩溃！将影响${contestant.collapseRemain}轮解题`, "text-red");
+                    contestant.examScore = Math.floor(contestant.examScore * 0.8); // 分数打8折
+                }
+                
+                addLog("exam-log", `${contestant.name} 本轮解题进度+${progress}，累计进度${totalProgress}，当前笔试得分：${contestant.examScore}分`, 
+                    contestant.examScore >= 80 ? "text-green" : contestant.examScore >= 60 ? "text-yellow" : "text-red");
+            });
+            
+            // 生成本轮笔试排名
+            generateExamRanking();
+            
+            // 检查是否完成所有轮次
+            if (gameState.examCurrentRound >= gameState.examTotalRounds) {
+                addLog("exam-log", "\n===== 笔试阶段全部结束！=====", "text-cyan");
+                addLog("exam-log", "最终笔试排名如下：");
+                gameState.lastExamRanking.forEach((rank, idx) => {
+                    const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
+                    addLog("exam-log", `${medal} 第${idx+1}名：${rank.name} - ${rank.score}分`);
+                });
+                document.getElementById("exam-finish-btn").style.display = "inline-block";
+            }
+        }
+
+        // 优化笔试排行榜显示
+        function generateExamRanking() {
+            // 复制选手数据并排序
+            const ranking = [...gameState.contestants].filter(c => !c.isQuit).sort((a, b) => b.examScore - a.examScore);
+            gameState.lastExamRanking = ranking;
+            
+            // 保存分数
+            ranking.forEach(contestant => {
+                gameState.lastExamScores[contestant.name] = contestant.examScore;
+            });
+            
+            // 生成排名表格
+            const rankingEl = document.getElementById("exam-ranking");
+            rankingEl.innerHTML = `
+                <h2>笔试实时排名（第${gameState.examCurrentRound}轮）</h2>
+                <table class="ranking-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>选手</th>
+                            <th>笔试得分</th>
+                            <th>解题进度</th>
+                            <th>压力等级</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ranking.map((contestant, idx) => `
+                            <tr class="rank-slide">
+                                <td>${idx+1}</td>
+                                <td>${contestant.name} ${contestant.isCaptain ? "（队长）" : ""}</td>
+                                <td class="${getScoreBgClass(contestant.examScore)} score-shake">${contestant.examScore}</td>
+                                <td>${gameState.examProblem.index}</td>
+                                <td><span class="stress-status ${getStressClass(contestant.stressValue)}">${getStressName(contestant.stressValue)}</span></td>
+                                <td>${contestant.isCollapsed ? "心态崩溃" : contestant.examTimeHalf ? "加速解题" : "正常解题"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // 正赛阶段优化（修复流程卡顿、优化排行榜显示每道题得分）
+        function gotoMainMatch() {
+            gameState.currentDay = 1;
+            gameState.dailyCurrentRound = 0;
+            gameState.lastDailyRanking = [];
+            gameState.lastDailyScores = {};
+            
+            // 重置每日状态
+            gameState.dailyDeductionProcessed = false;
+            gameState.dailyRankingShown = false;
+            gameState.interactionProcessed = false;
+            
+            // 初始化正赛数据
+            gameState.contestants.forEach(contestant => {
+                contestant.totalScore = contestant.examScore * 0.2; // 笔试占20%权重
+                contestant.dailyTotal = Array(gameState.dailyTotalDays).fill(0);
+                contestant.problemScores = [];
+                contestant.problemCompleteRounds = [];
+                
+                for (let day = 0; day < gameState.dailyTotalDays; day++) {
+                    contestant.currentProblem[day] = 0;
+                    contestant.stuckRounds[day] = 0;
+                    contestant.currentPartScore[day] = 0;
+                    contestant.dailyTimeHalf[day] = false;
+                    contestant.problemScores.push(Array(gameState.dailyProbCount).fill(0));
+                    contestant.problemCompleteRounds.push(Array(gameState.dailyProbCount).fill(-1));
+                }
+                
+                contestant.isCollapsed = false;
+                contestant.collapseRemain = 0;
+                contestant.stressResistanceActive = false;
+                contestant.stressResistanceRemain = 0;
+                contestant.speedBoostActive = false;
+            });
+            
+            updateMainMatchTitle();
+            showPage("mainmatch-page");
+            
+            // 重置按钮状态
+            document.getElementById("deduction-btn").style.display = "none";
+            document.getElementById("daily-ranking-btn").style.display = "none";
+            document.getElementById("interaction-btn").style.display = "none";
+            document.getElementById("next-day-btn").style.display = "none";
+            document.getElementById("force-finish-btn").style.display = "inline-block"; // 显示强制完成按钮
+            
+            addLog("mainmatch-log", `===== 正赛 Day${gameState.currentDay} 开始（共${gameState.dailyTotalDays}天，每天30轮）=====`, "text-cyan");
+            addLog("mainmatch-log", `今日题目数量：${gameState.dailyProbCount}道`);
+            
+            // 生成今日题目信息
+            const dayProbs = gameState.dailyProblems[gameState.currentDay - 1];
+            dayProbs.forEach((prob, idx) => {
+                addLog("mainmatch-log", `第${idx+1}题信息：`);
+                addLog("mainmatch-log", `难度分布 - DP：${prob.dp} | 数据结构：${prob.dataStruct} | 数学：${prob.math} | 字符串：${prob.str} | 图论：${prob.graph}`);
+                addLog("mainmatch-log", `思维难度：${prob.thinkDiff} | 代码难度：${prob.codeDiff}`);
+                addLog("mainmatch-log", `时间复杂度要求：${prob.fullComplexity}`);
+                addLog("mainmatch-log", `部分分设置：`);
+                prob.partScores.forEach((part, pIdx) => {
+                    addLog("mainmatch-log", `  ${pIdx+1}. ${part.score}分 - 难度系数${part.diffCoeff.toFixed(2)} - 复杂度${part.complexity} - 特殊性质：${part.specialProp}`);
+                });
+                addLog("mainmatch-log", "----------------------------------");
+            });
+        }
+
+        function updateMainMatchTitle() {
+            document.getElementById("mainmatch-day-title").textContent = 
+                `正赛 Day${gameState.currentDay}（300分钟/30轮，每轮10分钟）`;
+        }
+
+        function nextDailyRound() {
+    const currentDayIdx = gameState.currentDay - 1;
+    
+    if (gameState.dailyCurrentRound >= gameState.dailyTotalRounds) {
+        addLog("mainmatch-log", "\n===== 今日比赛轮次全部完成！=====", "text-yellow");
+        addLog("mainmatch-log", "请先处理当日挂分，再查看排行榜");
+        document.getElementById("deduction-btn").style.display = "inline-block";
+        return;
+    }
+    
+    gameState.dailyCurrentRound++;
+    const currentRound = gameState.dailyCurrentRound;
+    
+    addLog("mainmatch-log", `\n===== Day${gameState.currentDay} 第${currentRound}轮（剩余${gameState.dailyTotalRounds - currentRound}轮）=====`, "text-yellow");
+    
+    // 处理时间过半
+    if (currentRound === 15 && !gameState.contestants.some(c => c.dailyTimeHalf[currentDayIdx])) {
+        addLog("mainmatch-log", "\n⚠️ 今日比赛时间已过半！选手们开始加快解题速度...", "text-orange");
+        gameState.contestants.forEach(contestant => {
+            contestant.dailyTimeHalf[currentDayIdx] = true;
+        });
+    }
+    
+    // 遍历选手处理本轮解题
+    gameState.contestants.forEach(contestant => {
+        if (contestant.isQuit || contestant.isCollapsed) {
+            if (contestant.isCollapsed) {
+                contestant.collapseRemain--;
+                if (contestant.collapseRemain <= 0) {
+                    contestant.isCollapsed = false;
+                    addLog("mainmatch-log", `${contestant.name} 心态恢复，重新开始解题！`, "text-green");
+                } else {
+                    addLog("mainmatch-log", `${contestant.name} 仍处于心态崩溃状态（剩余${contestant.collapseRemain}轮），本轮无进展`, "text-red");
+                }
+            }
+            return;
+        }
+        
+        const currentProbIdx = contestant.currentProblem[currentDayIdx];
+        if (currentProbIdx >= gameState.dailyProbCount) {
+            addLog("mainmatch-log", `${contestant.name} 已完成今日所有题目，本轮检查代码优化`, "text-gray");
+            // 代码优化小幅加分（直接加到对应题目得分，再重新计算今日总分）
+            const optimizeAdd = randInt(0, 2);
+            const lastProbIdx = gameState.dailyProbCount - 1;
+            contestant.problemScores[currentDayIdx][lastProbIdx] = clamp(
+                contestant.problemScores[currentDayIdx][lastProbIdx] + optimizeAdd,
+                0,
+                100
+            );
+            // 强制重新计算今日总分
+            contestant.dailyTotal[currentDayIdx] = contestant.problemScores[currentDayIdx].reduce(
+                (sum, score) => sum + score,
+                0
+            );
+            // 强制重新计算累计总分
+            contestant.totalScore = contestant.examScore + contestant.dailyTotal.reduce(
+                (sum, dayScore) => sum + dayScore,
+                0
+            );
+            return;
+        }
+        
+        const currentProb = gameState.dailyProblems[currentDayIdx][currentProbIdx];
+        
+        // 检查是否卡题
+        if (contestant.stuckRounds[currentDayIdx] > 0) {
+            contestant.stuckRounds[currentDayIdx]--;
+            const stuckProb = randInt(0, 100);
+            const stressFactor = 1 + (contestant.stressValue / 100) * 0.5;
+            
+            if (stuckProb > 70 * stressFactor) {
+                addLog("mainmatch-log", `${contestant.name} 终于突破卡题状态！继续解题`, "text-green");
+            } else {
+                addLog("mainmatch-log", `${contestant.name} 仍卡在第${currentProbIdx+1}题（剩余${contestant.stuckRounds[currentDayIdx]}轮）`, "text-red");
+                return;
+            }
+        }
+        
+        // ===================== 核心：解题进度计算（回归基础逻辑） =====================
+        // 1. 计算题目综合难度（各维度加权）
+        const probTotalDiff = (
+            currentProb.dp * 0.2 + 
+            currentProb.dataStruct * 0.2 + 
+            currentProb.math * 0.2 + 
+            currentProb.str * 0.2 + 
+            currentProb.graph * 0.2 +
+            currentProb.thinkDiff * 0.1 +
+            currentProb.codeDiff * 0.1
+        );
+        // 2. 计算选手综合能力（对应维度加权）
+        const contestantTotalAbility = (
+            contestant.dpAbility * 0.2 + 
+            contestant.dsAbility * 0.2 + 
+            contestant.mathAbility * 0.2 + 
+            contestant.strAbility * 0.2 + 
+            contestant.graphAbility * 0.2 +
+            contestant.thinkAbility * 0.1 +
+            contestant.codeAbility * 0.1
+        );
+        // 3. 能力差值（无额外惩罚）
+        const abilityDiff = contestantTotalAbility - probTotalDiff;
+
+        // 4. 基础进度计算
+        let progress = 0;
+        if (abilityDiff >= 0) {
+            progress = 10 + (abilityDiff / 10) * 8; // 能力≥难度：进度递增
+        } else {
+            progress = 10 * (1 + abilityDiff / 100); // 能力<难度：进度衰减
+        }
+        
+        // 5. 思维/代码能力修正
+        const thinkDiff = contestant.thinkAbility - currentProb.thinkDiff;
+        const codeDiff = contestant.codeAbility - currentProb.codeDiff;
+        progress += (thinkDiff * 0.4) + (codeDiff * 0.2);
+        
+        // 6. 心态稳定性修正
+        const mentalScore = contestant.mentalStability * (1 - contestant.stressValue / 100);
+        progress *= (mentalScore / 100);
+        
+        // 7. 能力碾压机制（回归基础阈值20）
+        if (abilityDiff >= 20) {
+            progress *= 2.5;
+            if (abilityDiff >= 30) {
+                progress = 1000;
+                addLog("mainmatch-log", `${contestant.name} 能力远超第${currentProbIdx+1}题难度！本轮直接突破关键进度`, "text-green");
+            }
+        }
+        
+        // 8. 天赋激活（基础逻辑）
+        if (!contestant.talentActivated && Math.random() < 0.08) {
+            contestant.talentActivated = true;
+            const talentIdx = contestant.positiveTalents[randInt(0, contestant.positiveTalents.length)];
+            addLog("mainmatch-log", `${contestant.name} 激活天赋：<span class="${getTalentClass(talentIdx)}">${POSITIVE_TALENT_DESC[talentIdx]}</span>！`, "text-green");
+            
+            const talentBoost = abilityDiff >= 0 ? 1.2 : 0.8;
+            switch (talentIdx) {
+                case 0: progress += 20 * talentBoost; break;
+                case 1: progress += 15 * talentBoost; break;
+                case 2: case 3: case 4: case 5: case 6: progress += 18 * talentBoost; break;
+                case 7: progress += 12 * talentBoost; break;
+                case 8: progress += 22 * talentBoost; break;
+                case 9: progress += 14 * talentBoost; break;
+                case 10: progress += 16 * talentBoost; break;
+                case 11: progress += 24 * talentBoost; break;
+                case 12: progress += 10 * talentBoost; break;
+                case 13: 
+                    contestant.speedBoostActive = true;
+                    progress += 15 * talentBoost; 
+                    break;
+                case 14: 
+                    contestant.stressResistanceActive = true;
+                    contestant.stressResistanceRemain = 5;
+                    progress += 18 * talentBoost; 
+                    break;
+            }
+        }
+        
+        // 9. 速度加持天赋
+        if (contestant.speedBoostActive) {
+            progress *= 1.3;
+            contestant.speedBoostActive = false;
+        }
+        
+        // 10. 负面天赋惩罚（基础逻辑）
+        if (contestant.hasNegativeTalent) {
+            const penaltyRate = abilityDiff >= 0 ? 0.05 : 0.1;
+            const penalty = contestantTotalAbility * penaltyRate;
+            progress -= penalty;
+            addLog("mainmatch-log", `${contestant.name} 受负面天赋【${NEGATIVE_TALENT_DESC[contestant.negativeTalent]}】影响，解题进度减少${penalty.toFixed(1)}点`, "text-red");
+        }
+        
+        // 11. 时间过半加成
+        if (contestant.dailyTimeHalf[currentDayIdx]) {
+            progress *= 1.25;
+        }
+        
+        // 12. 抗压天赋
+        if (contestant.stressResistanceActive) {
+            progress *= 1.15;
+            contestant.stressResistanceRemain--;
+            if (contestant.stressResistanceRemain <= 0) {
+                contestant.stressResistanceActive = false;
+            }
+        }
+        
+        // 13. 进度边界
+        progress = Math.max(0, Math.floor(progress));
+        
+        // 更新题目进度
+        currentProb.index += progress;
+        const totalProgress = currentProb.index;
+        
+        // 计算当前得分（AC阈值随能力差值调整）
+        let currentScore = 0;
+        const acThresholdAdjust = Math.max(0.5, 1 - (abilityDiff / 100));
+        currentProb.partScores.forEach(part => {
+            const adjustedThreshold = part.score * part.diffCoeff * 10 * acThresholdAdjust;
+            if (totalProgress >= adjustedThreshold) {
+                currentScore = part.score;
+            }
+        });
+        
+        // 更新题目得分
+        contestant.problemScores[currentDayIdx][currentProbIdx] = currentScore;
+        
+        // AC判定（基础逻辑）
+        if (currentScore >= 100 || (abilityDiff >= 30 && totalProgress >= 500)) {
+            currentScore = 100;
+            contestant.problemScores[currentDayIdx][currentProbIdx] = 100;
+            addLog("mainmatch-log", `${contestant.name} 完成第${currentProbIdx+1}题，获得满分100分！`, "text-green");
+            contestant.problemCompleteRounds[currentDayIdx][currentProbIdx] = currentRound;
+            contestant.currentProblem[currentDayIdx]++;
+            
+            // 卡题概率（基础逻辑）
+            const stuckProb = Math.max(0.01, 0.1 - (abilityDiff / 1000));
+            if (contestant.currentProblem[currentDayIdx] < gameState.dailyProbCount && Math.random() < stuckProb) {
+                contestant.stuckRounds[currentDayIdx] = randInt(1, 2);
+                addLog("mainmatch-log", `${contestant.name} 开始解答第${contestant.currentProblem[currentDayIdx]+1}题，遇到小瓶颈，预计卡题${contestant.stuckRounds[currentDayIdx]}轮`, "text-orange");
+            }
+        } else {
+            addLog("mainmatch-log", `${contestant.name} 第${currentProbIdx+1}题进度+${progress}，累计进度${totalProgress}，当前得分：${currentScore}分`, 
+                currentScore >= 80 ? "text-green" : currentScore >= 60 ? "text-yellow" : "text-red");
+            
+            // 心态崩溃概率（基础逻辑）
+            const collapseProb = Math.max(0.01, (contestant.stressValue / 100) * 0.15 + 0.03 - (abilityDiff / 1000));
+            if (Math.random() < collapseProb && !contestant.isCollapsed) {
+                contestant.isCollapsed = true;
+                contestant.collapseRemain = randInt(1, 3);
+                addLog("mainmatch-log", `${contestant.name} 因压力过大心态崩溃！将影响${contestant.collapseRemain}轮解题`, "text-red");
+                const penaltyRate = Math.max(0.05, 0.1 - (abilityDiff / 1000));
+                contestant.problemScores[currentDayIdx][currentProbIdx] = clamp(
+                    Math.floor(currentScore * (1 - penaltyRate)),
+                    0,
+                    100
+                );
+            }
+        }
+        
+        // 强制计算今日/累计总分
+        contestant.dailyTotal[currentDayIdx] = contestant.problemScores[currentDayIdx].reduce(
+            (sum, score) => sum + score,
+            0
+        );
+        contestant.totalScore = contestant.examScore + contestant.dailyTotal.reduce(
+            (sum, dayScore) => sum + dayScore,
+            0
+        );
+    });
+    
+    // 生成排名
+    generateDailyRanking();
+}
+
+        // 优化正赛排行榜显示（显示每道题得分）
+        function generateDailyRanking() {
+    const currentDayIdx = gameState.currentDay - 1;
+    
+    // 按「累计总分降序」排序（确保分数高的选手在前）
+    const ranking = gameState.contestants
+        .filter(c => !c.isQuit)
+        .sort((a, b) => b.totalScore - a.totalScore);
+    
+    gameState.lastDailyRanking = ranking;
+    
+    // 生成排名表格（含每道题得分、今日总分、累计总分）
+    const rankingEl = document.getElementById("daily-ranking");
+    let tableHtml = `
+        <h2>Day${gameState.currentDay} 实时排名（第${gameState.dailyCurrentRound}轮）</h2>
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>选手</th>
+                    ${Array.from({length: gameState.dailyProbCount}, (_, probIdx) => 
+                        `<th>第${probIdx+1}题得分</th>`
+                    ).join("")}
+                    <th>今日总分</th>
+                    <th>累计总分</th>
+                    <th>完成题目数</th>
+                    <th>压力等级</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${ranking.map((contestant, idx) => {
+                    // 计算完成题目数（得分≥100的题目）
+                    const completedCount = contestant.problemScores[currentDayIdx].filter(
+                        score => score >= 100
+                    ).length;
+                    
+                    // 生成每道题得分的单元格
+                    const problemScoresCells = contestant.problemScores[currentDayIdx].map(score => `
+                        <td class="${getScoreBgClass(score)}">${score}</td>
+                    `).join("");
+                    
+                    // 获取压力等级样式与名称
+                    const stressClass = getStressClass(contestant.stressValue);
+                    const stressName = getStressName(contestant.stressValue);
+                    
+                    // 获取当前状态
+                    const currentStatus = contestant.isCollapsed 
+                        ? `心态崩溃（剩余${contestant.collapseRemain}轮）`
+                        : contestant.dailyTimeHalf[currentDayIdx] 
+                            ? "加速解题" 
+                            : "正常解题";
+                    
+                    return `
+                        <tr class="rank-slide">
+                            <td>${idx+1}</td>
+                            <td>${contestant.name} ${contestant.isCaptain ? "（队长）" : ""}</td>
+                            ${problemScoresCells}
+                            <!-- 今日总分（当日题目得分总和） -->
+                            <td class="${getScoreBgClass(contestant.dailyTotal[currentDayIdx])}">
+                                ${contestant.dailyTotal[currentDayIdx]}
+                            </td>
+                            <!-- 累计总分（笔试+所有天数今日总分） -->
+                            <td class="${getScoreBgClass(contestant.totalScore)} score-shake">
+                                ${contestant.totalScore}
+                            </td>
+                            <td>${completedCount}/${gameState.dailyProbCount}</td>
+                            <td><span class="stress-status ${stressClass}">${stressName}</span></td>
+                            <td>${currentStatus}</td>
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+    `;
+    
+    rankingEl.innerHTML = tableHtml;
+}
+
+        // 修复挂分处理函数
+        function processDailyDeduction() {
+            if (gameState.dailyDeductionProcessed) {
+                alert("当日挂分已处理！");
+                return;
+            }
+            
+            addLog("mainmatch-log", "\n===== 处理当日挂分 =====", "text-orange");
+            
+            const currentDayIdx = gameState.currentDay - 1;
+            gameState.contestants.forEach(contestant => {
+                if (contestant.isQuit) return;
+                const dailyScore = contestant.dailyTotal[currentDayIdx];
+                
+                // 挂分概率与压力正相关
+                const deductionProb = (contestant.stressValue / 100) * 0.4 + 0.05; // 5%-45%概率
+                if (Math.random() < deductionProb) {
+                    const deductionRate = randInt(5, 20) / 100; // 5%-20%挂分
+                    const deductionScore = Math.floor(dailyScore * deductionRate);
+                    contestant.dailyTotal[currentDayIdx] -= deductionScore;
+                    contestant.totalScore = contestant.examScore + contestant.dailyTotal.reduce((sum, val) => sum + val, 0);
+                    
+                    addLog("mainmatch-log", `${contestant.name} 因压力导致代码出错，挂分${deductionScore}分，今日得分变为${contestant.dailyTotal[currentDayIdx]}分`, "text-red");
+                } else {
+                    addLog("mainmatch-log", `${contestant.name} 代码检查无误，无挂分！`, "text-green");
+                }
+            });
+            
+            gameState.dailyDeductionProcessed = true;
+            addLog("mainmatch-log", "\n挂分处理完成，请查看今日最终排行榜", "text-cyan");
+            document.getElementById("daily-ranking-btn").style.display = "inline-block";
+        }
+
+        // 修复显示排行榜函数
+        function showDailyRanking() {
+            if (gameState.dailyRankingShown) {
+                alert("今日排行榜已查看！");
+                return;
+            }
+            
+            const currentDayIdx = gameState.currentDay - 1;
+            addLog("mainmatch-log", `\n===== Day${gameState.currentDay} 最终排行榜 =====`, "text-yellow");
+            
+            gameState.lastDailyRanking.forEach((contestant, idx) => {
+                const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
+                const completedProbs = contestant.problemCompleteRounds[currentDayIdx].filter(round => round >= 0).length;
+                const problemScores = contestant.problemScores[currentDayIdx].map((s, i) => `第${i+1}题：${s}`).join(" | ");
+                
+                addLog("mainmatch-log", `${medal} 第${idx+1}名：${contestant.name} - 今日得分：${contestant.dailyTotal[currentDayIdx]} - 累计总分：${contestant.totalScore.toFixed(1)} - 完成题目：${completedProbs}/${gameState.dailyProbCount} - 各题得分：${problemScores}`);
+            });
+            
+            gameState.dailyRankingShown = true;
+            addLog("mainmatch-log", "\n排行榜查看完成，可进行赛后互动", "text-cyan");
+            document.getElementById("interaction-btn").style.display = "inline-block";
+        }
+
+        // 修复赛后互动函数（解决无法结束问题）
+        function dailyInteraction() {
+            if (gameState.interactionProcessed) {
+                alert("今日互动已完成！");
+                return;
+            }
+            
+            addLog("mainmatch-log", "\n===== 赛后互动环节 =====", "text-green");
+            
+            // 根据选手数量选择互动类型
+            const activeContestants = gameState.contestants.filter(c => !c.isQuit);
+            const contestantCount = activeContestants.length;
+            
+            if (contestantCount >= 2) {
+                // 随机选择2-3名选手互动
+                const shuffled = [...activeContestants].sort(() => 0.5 - Math.random());
+                const interactCount = contestantCount >= 3 ? randInt(2, 3) : 2;
+                const interactContestants = shuffled.slice(0, interactCount);
+                
+                let interactionText = "";
+                const knowledgePoint = KNOWLEDGE_POINTS[randInt(0, KNOWLEDGE_POINTS.length - 1)];
+                
+                if (interactCount === 2) {
+                    const template = INTERACTION_2P[randInt(0, INTERACTION_2P.length - 1)];
+                    const abilityIdx = randInt(0, ABILITY_KEYS.length - 1);
+                    const abilityAdd = randInt(1, 5);
+                    
+                    // 能力提升
+                    interactContestants.forEach(contestant => {
+                        contestant[ABILITY_KEYS[abilityIdx]] = clamp(contestant[ABILITY_KEYS[abilityIdx]] + abilityAdd, 0, 100);
+                    });
+                    
+                    const args = [
+                        interactContestants[0].name,
+                        interactContestants[1].name,
+                        knowledgePoint,
+                        ABILITY_NAMES[abilityIdx],
+                        abilityAdd
+                    ].filter(arg => arg !== undefined);
+                    
+                    interactionText = stringFormat(template, args);
+                } else {
+                    const template = INTERACTION_3P[randInt(0, INTERACTION_3P.length - 1)];
+                    const args = [
+                        interactContestants[0].name,
+                        interactContestants[1].name,
+                        interactContestants[2].name,
+                        knowledgePoint
+                    ];
+                    interactionText = stringFormat(template, args);
+                    
+                    // 小幅降低压力
+                    interactContestants.forEach(contestant => {
+                        contestant.stressValue = clamp(contestant.stressValue - randInt(5, 10), 0, 100);
+                    });
+                }
+                
+                addLog("mainmatch-log", interactionText);
+                
+                // 互动后心态提升
+                interactContestants.forEach(contestant => {
+                    contestant.mentalStability = clamp(contestant.mentalStability + randInt(2, 5), 0, 100);
+                    addLog("mainmatch-log", `${contestant.name} 的心态稳定性提升了2~5点，压力有所缓解`, "text-cyan");
+                });
+            }
+            
+            gameState.interactionProcessed = true;
+            
+            // 检查是否最后一天
+            if (gameState.currentDay >= gameState.dailyTotalDays) {
+                addLog("mainmatch-log", "\n===== 所有比赛日已完成！=====", "text-cyan");
+                addLog("mainmatch-log", "即将进入最终结果结算阶段...");
+                setTimeout(showFinalResult, 2000);
+            } else {
+                addLog("mainmatch-log", "\n今日互动完成，可进入下一天比赛", "text-cyan");
+                document.getElementById("next-day-btn").style.display = "inline-block";
+            }
+        }
+
+        // 修复下一天函数
+        function nextDay() {
+            if (gameState.currentDay >= gameState.dailyTotalDays) {
+                alert("所有比赛日已完成！");
+                showFinalResult();
+                return;
+            }
+            
+            // 重置当日状态
+            gameState.dailyCurrentRound = 0;
+            gameState.dailyDeductionProcessed = false;
+            gameState.dailyRankingShown = false;
+            gameState.interactionProcessed = false;
+            gameState.lastDailyRanking = [];
+            gameState.lastDailyScores = {};
+            
+            // 重置选手当日状态
+            gameState.contestants.forEach(contestant => {
+                contestant.isCollapsed = false;
+                contestant.collapseRemain = 0;
+                contestant.talentActivated = false;
+                contestant.stressResistanceActive = false;
+                contestant.stressResistanceRemain = 0;
+                contestant.speedBoostActive = false;
+            });
+            
+            // 进入下一天
+            gameState.currentDay++;
+            updateMainMatchTitle();
+            
+            // 重置按钮状态
+            document.getElementById("deduction-btn").style.display = "none";
+            document.getElementById("daily-ranking-btn").style.display = "none";
+            document.getElementById("interaction-btn").style.display = "none";
+            document.getElementById("next-day-btn").style.display = "none";
+            
+            addLog("mainmatch-log", `\n===== 正赛 Day${gameState.currentDay} 开始 =====`, "text-cyan");
+            addLog("mainmatch-log", `今日题目数量：${gameState.dailyProbCount}道`);
+            
+            // 生成今日题目信息
+            const dayProbs = gameState.dailyProblems[gameState.currentDay - 1];
+            dayProbs.forEach((prob, idx) => {
+                addLog("mainmatch-log", `第${idx+1}题信息：`);
+                addLog("mainmatch-log", `难度分布 - DP：${prob.dp} | 数据结构：${prob.dataStruct} | 数学：${prob.math} | 字符串：${prob.str} | 图论：${prob.graph}`);
+                addLog("mainmatch-log", `思维难度：${prob.thinkDiff} | 代码难度：${prob.codeDiff}`);
+                addLog("mainmatch-log", `时间复杂度要求：${prob.fullComplexity}`);
+                addLog("mainmatch-log", "----------------------------------");
+            });
+        }
+
+        // 新增：强制完成所有比赛
+        function forceFinishMainMatch() {
+            if (confirm("确定要强制完成所有比赛吗？将直接跳转到最终结果！")) {
+                showFinalResult();
+            }
+        }
+
+function showFinalResult() {
+    // 计算最终排名（仅实际选手）
+    const finalRanking = gameState.contestants
+        .filter(c => !c.isQuit)
+        .sort((a, b) => b.totalScore - a.totalScore);
+
+    // ========== 第一步：计算比赛可得到的最大分数（总分上限） ==========
+    const examFullScore = 100; // 笔试满分（可根据实际规则调整）
+    const dailyPerProbFullScore = 100; // 每道题满分
+    const dailyFullScore = gameState.dailyProbCount * dailyPerProbFullScore; // 每日满分
+    const totalFullScore = examFullScore + (gameState.dailyTotalDays * dailyFullScore); // 比赛总分上限（最大可得分）
+
+    // ========== 生成500个虚拟选手计算奖牌分数线（限制分数≤总分上限） ==========
+    const dummyCount = 500;
+    const realScores = finalRanking.map(c => c.totalScore);
+    const minRealScore = realScores.length > 0 ? Math.min(...realScores) : 0;
+    const maxRealScore = realScores.length > 0 ? Math.max(...realScores) : totalFullScore * 0.8; // 实际最高分不超上限80%
+
+    // 生成虚拟分数（范围：0 ~ 总分上限，避免超纲）
+    const dummyScores = Array.from({ length: dummyCount }, () => {
+        return randInt(
+            Math.floor(minRealScore * 0.5),
+            Math.min(Math.ceil(maxRealScore * 1.2), totalFullScore) // 虚拟分数≤总分上限
+        );
+    });
+
+    // 合并分数并排序（降序）
+    const allScores = [
+        ...realScores,
+        ...dummyScores
+    ].sort((a, b) => b - a);
+    const totalCount = allScores.length;
+
+    // 计算奖牌比例（前10%/20%/30%）
+    const goldRatio = 0.1;    // 前10% 金牌
+    const silverRatio = 0.1;  // 接下来10% 银牌（累计20%）
+    const bronzeRatio = 0.1;  // 接下来10% 铜牌（累计30%）
+
+    const goldCutoffIndex = Math.ceil(totalCount * goldRatio) - 1;
+    const silverCutoffIndex = Math.ceil(totalCount * (goldRatio + silverRatio)) - 1;
+    const bronzeCutoffIndex = Math.ceil(totalCount * (goldRatio + silverRatio + bronzeRatio)) - 1;
+
+    // ========== 第二步：限制分数线在 0 ~ 总分上限 范围内 ==========
+    let goldCutoff = allScores[goldCutoffIndex] || 0;
+    let silverCutoff = allScores[silverCutoffIndex] || 0;
+    let bronzeCutoff = allScores[bronzeCutoffIndex] || 0;
+
+    // 强制分数线≤总分上限，且≥0
+    goldCutoff = Math.min(Math.max(goldCutoff, 0), totalFullScore);
+    silverCutoff = Math.min(Math.max(silverCutoff, 0), totalFullScore);
+    bronzeCutoff = Math.min(Math.max(bronzeCutoff, 0), totalFullScore);
+
+    // 额外兜底：确保分数线逻辑合理（金牌≥银牌≥铜牌）
+    goldCutoff = Math.max(goldCutoff, silverCutoff);
+    silverCutoff = Math.max(silverCutoff, bronzeCutoff);
+
+    // ========== 生成最终排名表格 ==========
+    const finalRankingEl = document.getElementById("final-ranking");
+    let tableHtml = `
+        <h2>${gameState.dailyTotalDays}天正赛最终排名</h2>
+        <!-- 补充总分上限和比例说明 -->
+        <div style="color: #4cd964; margin-bottom: 10px;">
+            比赛总分上限：${totalFullScore}分 | 奖牌分数线（前10%/20%/30%）：金牌≥${goldCutoff} | 银牌≥${silverCutoff} | 铜牌≥${bronzeCutoff}
+        </div>
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>最终排名</th>
+                    <th>选手</th>
+                    <th>笔试得分（20%）</th>
+                    ${Array.from({length: gameState.dailyTotalDays}, (_, i) => `<th>Day${i+1}得分</th>`).join("")}
+                    <th>最终总分</th>
+                    <th>平均压力等级</th>
+                    <th>奖牌</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    finalRanking.forEach((contestant, idx) => {
+        const dailyScoresHtml = contestant.dailyTotal.map((score, dayIdx) => 
+            `<td class="${getScoreBgClass(score)}">${score}</td>`
+        ).join("");
+        
+        // 计算平均压力等级
+        const avgStress = contestant.stressValue / 100 * 5;
+        const avgStressName = gameState.stressLevels[Math.floor(avgStress)].name;
+        
+        // 判定奖牌（分数≤总分上限）
+        let medalClass = "";
+        let medalText = "";
+        const contestantScore = Math.min(contestant.totalScore, totalFullScore); // 选手分数也限制在总分上限内
+        
+        if (contestantScore >= goldCutoff) {
+            medalClass = "medal-gold";
+            medalText = "金牌";
+        } else if (contestantScore >= silverCutoff) {
+            medalClass = "medal-silver";
+            medalText = "银牌";
+        } else if (contestantScore >= bronzeCutoff) {
+            medalClass = "medal-bronze";
+            medalText = "铜牌";
+        } else {
+            medalText = "无";
+        }
+        
+        tableHtml += `
+            <tr class="rank-slide">
+                <td>${idx+1}</td>
+                <td>${contestant.name} ${contestant.isCaptain ? "（队长）" : ""}</td>
+                <td class="${getScoreBgClass(contestant.examScore)}">${contestant.examScore}</td>
+                ${dailyScoresHtml}
+                <td class="${getScoreBgClass(contestant.totalScore)} score-shake">${contestantScore.toFixed(1)}</td>
+                <td><span class="stress-status ${getStressClass(contestant.stressValue)}">${avgStressName}</span></td>
+                <td><span class="${medalClass}">${medalText}</span></td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `
+            </tbody>
+        </table>
+        
+        <!-- 每日详细得分（每道题） -->
+        <div style="margin-top: 20px;">
+            <h3>每日各题详细得分</h3>
+            ${Array.from({length: gameState.dailyTotalDays}, (_, dayIdx) => {
+                return `
+                    <div style="margin: 15px 0; padding: 10px; background: #1a1a1a; border-radius: 8px;">
+                        <h4>Day${dayIdx+1} 各题得分明细（每日满分：${dailyFullScore}分）</h4>
+                        <table class="ranking-table" style="margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th>选手</th>
+                                    ${Array.from({length: gameState.dailyProbCount}, (_, probIdx) => `<th>第${probIdx+1}题得分</th>`).join("")}
+                                    <th>Day${dayIdx+1}总分</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${finalRanking.map(contestant => `
+                                    <tr>
+                                        <td>${contestant.name}</td>
+                                        ${contestant.problemScores[dayIdx].map(score => 
+                                            `<td class="${getScoreBgClass(score)}">${score}</td>`
+                                        ).join("")}
+                                        <td class="${getScoreBgClass(contestant.dailyTotal[dayIdx])}">${contestant.dailyTotal[dayIdx]}</td>
+                                    </tr>
+                                `).join("")}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }).join("")}
+        </div>
+    `;
+
+    finalRankingEl.innerHTML = tableHtml;
+    
+    // 生成冠军感言
+    const champion = finalRanking[0];
+    const speechEl = document.getElementById("champion-speech");
+    
+    const speechTexts = [
+        `大家好！我是${champion.name}，非常荣幸能获得本次比赛的冠军！这10周的训练虽然充满压力，但每一次刷题、每一场模拟赛都让我成长。感谢队友的陪伴，也感谢自己的坚持——算法之路没有捷径，唯有热爱与汗水才能浇灌出成功的果实！`,
+        `站在冠军的领奖台上，我想说：${champion.name}能取得今天的成绩，离不开日复一日的训练。从最初的压力重重，到逐渐找到解题节奏，是心态的调整和能力的积累让我走到了最后。未来我会继续深耕算法，不负这份荣誉！`,
+        `谢谢大家！作为${champion.isCaptain ? "队长" : "选手"}，${champion.name}能拿下冠军，要感谢团队的互相鼓励。比赛中遇到过卡题、心态崩溃，但正是这些经历让我学会了抗压和坚持。算法竞赛教会我的不仅是解题技巧，更是永不放弃的精神！`,
+        `拿到这个冠军，${champion.name}的心情非常激动！10周训练+${gameState.dailyTotalDays}天比赛，每一步都走得不容易。压力曾让我想过放弃，但天赋的激活和队友的支持让我坚持了下来。愿所有竞赛人都能在热爱的领域闪闪发光！`
+    ];
+    
+    const speech = speechTexts[randInt(0, speechTexts.length - 1)];
+    
+    printText("champion-speech", `
+===== 冠军感言 =====
+
+${speech}
+
+===== 比赛数据总结 =====
+🏆 冠军：${champion.name}（最终总分：${Math.min(champion.totalScore, totalFullScore).toFixed(1)}）
+🥈 亚军：${finalRanking.length >= 2 ? finalRanking[1].name + `（${Math.min(finalRanking[1].totalScore, totalFullScore).toFixed(1)}分）` : "无"}
+🥉 季军：${finalRanking.length >= 3 ? finalRanking[2].name + `（${Math.min(finalRanking[2].totalScore, totalFullScore).toFixed(1)}分）` : "无"}
+
+📊 比赛统计：
+- 参赛选手数：${gameState.contestantCount}人
+- 训练周期：20周
+- 笔试轮次：${gameState.examTotalRounds}轮
+- 正赛天数：${gameState.dailyTotalDays}天（每天${gameState.dailyTotalRounds}轮）
+- 每日题目数：${gameState.dailyProbCount}道
+- 比赛总分上限：${totalFullScore}分（笔试${examFullScore}分 + 正赛${gameState.dailyTotalDays}天×${dailyFullScore}分/天）
+- 平均压力等级最高选手：${finalRanking.sort((a,b) => b.stressValue - a.stressValue)[0].name}（压力等级：${getStressName(finalRanking[0].stressValue)}）
+- 能力提升最多选手：${finalRanking.sort((a,b) => {
+    const aTotal = ABILITY_KEYS.reduce((sum, key) => sum + a[key], 0);
+    const bTotal = ABILITY_KEYS.reduce((sum, key) => sum + b[key], 0);
+    return bTotal - aTotal;
+})[0].name}
+
+💡 比赛感悟：
+算法竞赛的魅力不在于永远胜利，而在于在压力中成长、在卡题中突破、在团队中互助。
+每一次训练都是积淀，每一次比赛都是历练——这就是竞赛人的重生之路！
+    `, 15);
+    
+    // 显示最终结果页
+    showPage("result-page");
+}
+
+        // 重启游戏函数
+        function restartGame() {
+            // 重置所有游戏状态
+            gameState.contestants = [];
+            gameState.examProblem = {};
+            gameState.dailyProblems = [];
+            gameState.contestantCount = 2;
+            gameState.dailyProbCount = 2;
+            gameState.examCurrentRound = 0;
+            gameState.currentDay = 0;
+            gameState.dailyCurrentRound = 0;
+            gameState.dailyDeductionProcessed = false;
+            gameState.dailyRankingShown = false;
+            gameState.interactionProcessed = false;
+            gameState.lastExamRanking = [];
+            gameState.lastExamScores = {};
+            gameState.lastDailyRanking = [];
+            gameState.lastDailyScores = {};
+            gameState.trainingWeeksLeft = 10;
+            gameState.captainIndex = 0;
+            gameState.mockCurrentRound = 0;
+            gameState.mockDeductionProcessed = false;
+            gameState.mockRankingShown = false;
+            gameState.mockProblems = [];
+            gameState.mockScores = {};
+            gameState.mockDailyTotal = {};
+            
+            // 回到封面页
+            showPage("cover-page");
+            
+            // 清空所有日志
+            document.getElementById("contestant-info-log").innerHTML = "";
+            document.getElementById("exam-log").innerHTML = "";
+            document.getElementById("mainmatch-log").innerHTML = "";
+            document.getElementById("mock-log").innerHTML = "";
+            document.getElementById("champion-speech").innerHTML = "";
+            
+            // 重置输入框
+            document.getElementById("contestant-count").value = 2;
+            document.getElementById("daily-prob-count").value = 2;
+            updateContestantNameInputs();
+        }
+
+        // 页面加载完成初始化
+        window.onload = function() {
+            // 初始化选手姓名输入框
+            updateContestantNameInputs();
+            
+            // 关闭模态框的点击外部区域
+            document.getElementById("problem-modal").addEventListener("click", function(e) {
+                if (e.target === this) {
+                    closeProblemModal();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
